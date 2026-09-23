@@ -382,7 +382,7 @@ def _sync_readme(
     if args.dry_run:
         print(f"  (dry-run) README: {message}")
         return
-    write_text_keep_eol(root / "README.md", updated)
+    write_text_keep_eol(root / "README.md", L.to_crlf(updated))
     print(f"  OK README: {message}")
 
 
@@ -736,9 +736,20 @@ def cmd_lint(args: argparse.Namespace) -> int:
         findings = L.lint_manifest_text(raw, path.stem, readme_text=readme)
         results.append((path.stem, findings))
 
+    # W112 describes the working tree as a whole, so it only runs on a full pass;
+    # a --path / --name run stays focused on what was actually asked for.
+    full_run = not (args.path or args.name)
+    repo_findings: list[L.Finding] = []
+    if full_run:
+        if args.fix_format:
+            repo_findings = _fix_repo_line_endings(root, args.dry_run)
+        else:
+            repo_findings = L.scan_line_endings(root)
+
     total_errors = sum(1 for _, f in results for x in f if x.severity == "error")
     total_warnings = sum(1 for _, f in results for x in f if x.severity == "warning")
     dirty = [(name, findings) for name, findings in results if findings]
+    repo_warnings = sum(1 for x in repo_findings if x.severity == "warning")
 
     if args.json:
         payload = {
@@ -748,17 +759,30 @@ def cmd_lint(args: argparse.Namespace) -> int:
             "reports": {
                 name: [x.as_dict() for x in findings] for name, findings in dirty
             },
+            "repo_line_endings": {
+                "scanned": full_run,
+                "findings": [x.as_dict() for x in repo_findings],
+            },
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         for name, findings in dirty:
             print(f"[{name}]")
             report_findings(findings)
+        if repo_findings:
+            print("[repo line endings]")
+            report_findings(repo_findings)
         print(
             f"\nlint finished: {len(results)} manifest(s); "
             f"{total_errors} error(s), {total_warnings} warning(s); "
             f"{len(results) - len(dirty)} fully clean."
         )
+        if full_run:
+            print(
+                "repo line endings: every text file is CRLF"
+                if not repo_findings
+                else f"repo line endings: {len(repo_findings)} file(s) are not CRLF"
+            )
         if args.fix_format:
             print(
                 f"formatting fixed: {fixed} file(s)"
@@ -769,9 +793,28 @@ def cmd_lint(args: argparse.Namespace) -> int:
         return 1
     if total_errors:
         return 1
-    if args.strict and total_warnings:
+    if args.strict and (total_warnings or repo_warnings):
         return 1
     return 0
+
+
+def _fix_repo_line_endings(root: Path, dry_run: bool) -> list[L.Finding]:
+    """Normalize the repo's line endings where this skill owns the file, then rescan.
+
+    Only README.md is eligible here -- bucket/*.json already went through
+    _fix_format above. The rest of the tree (bin/, scripts/, .github/) belongs to
+    Scoop and to the repo's CI, so it is reported and left untouched, which is also
+    why the scan is a separate read-only pass rather than a blanket rewrite.
+    """
+    readme = root / "README.md"
+    if readme.is_file():
+        original = readme.read_bytes().decode("utf-8", "replace")
+        normalised = L.to_crlf(original)
+        if normalised != original:
+            print("[fix] README.md: line endings -> CRLF")
+            if not dry_run:
+                write_text_keep_eol(readme, normalised)
+    return L.scan_line_endings(root)
 
 
 def _fix_format(path: Path, raw: str) -> tuple[str, list[str]]:

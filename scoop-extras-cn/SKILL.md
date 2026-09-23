@@ -7,7 +7,7 @@ description: >
   recipes and fills in version, URL, hash, checkver, autoupdate and shortcuts,
   optionally syncing the README summary table; update edits fields by dotted
   path, bumps the version while rewriting hard-coded URLs, recomputes hashes and
-  probes upstream for the latest release (batch sweep supported); lint runs 22
+  probes upstream for the latest release (batch sweep supported); lint runs 23
   rules against this repo's CI and .editorconfig conventions and repairs
   formatting with --fix-format.
   The write target is $env:Scoop/buckets/extras-cn.
@@ -46,7 +46,7 @@ Package layout:
   docs <-> code, repo round-trip, lint baseline
 - `references/manifest-fields.md` manifest field reference (this repo's rules)
 - `references/recipes.md` when each of the 16 recipes applies, and what it emits
-- `references/lint-rules.md` the 22 rules and how to fix each one
+- `references/lint-rules.md` the 23 rules and how to fix each one
 - `references/coverage.md` the upstream survey behind the catalog, and the gaps
 - `assets/recipes.jsonc` the single source of truth for recipes: plain JSON under
   a deliberately non-`.json` name -- see "1. Hard constraints"
@@ -62,9 +62,6 @@ Globally installed at
 `$env:USERPROFILE/.workbuddy/skills/scoop-extras-cn`, a junction onto this
 repo's `skills/scoop-extras-cn`, so the repo stays the single source of truth.
 Every example below is relative to the package root.
-
-Managed interpreter on this machine:
-`$env:USERPROFILE/.workbuddy/binaries/python/versions/3.13.12/python.exe`.
 
 ## 1. Hard constraints
 
@@ -104,7 +101,7 @@ Managed interpreter on this machine:
 | :--- | :--- | :--- | :--- |
 | **generate** | `gen` | Build a manifest from a recipe and fill it in, optionally sync README | `--list-recipes`, `--from`, `--recipe`, `--fetch-hash`, `--hash-from-file`, `--section`, `--dry-run` |
 | **update** | `upd` | Edit fields / bump version + rewrite URLs / recompute hashes / probe upstream | `--name`, `--all`, `--set`, `--unset`, `--version`, `--rehash`, `--checkver [--apply]` |
-| **lint** | `check` | Run the 22 rules, repair formatting | `--name`, `--json`, `--strict`, `--fix-format`, `--rules` |
+| **lint** | `check` | Run the 23 rules, repair formatting | `--name`, `--json`, `--strict`, `--fix-format`, `--rules` |
 
 Shared option `--repo <bucket repo root>` overrides the target. It is accepted
 before or after the subcommand. Without it the script takes
@@ -131,6 +128,17 @@ Unsure about the recipe? Run `--list-recipes` first; it prints when each recipe
 applies, the required and optional parameters, and same-kind samples (from this
 repo where a manifest of that shape exists, from the upstream bucket otherwise).
 Then compare against `references/recipes.md`.
+
+**Tauri `*_x64-setup.exe` has no recipe of its own.** Tauri's NSIS bundle is not
+electron-builder's: 7z reads it directly and there is no `$PLUGINSDIR` payload,
+so `github-nsis-7z` over-fits it. Use `github-portable-zip` with the `#/dl.7z`
+fragment, then finish with `upd --set`, because that recipe emits neither hook:
+`pre_install` removing `$PLUGINSDIR` and `uninstall.exe` (Tauri writes it in
+lower case), and `suggest` `{"Microsoft Edge WebView2": "extras/webview2"}` --
+the installer would have fetched WebView2 itself, a plain extraction cannot. The
+shortcut target is `<product>-desktop.exe`. Confirm both against
+`7z l <asset>`, which is also how the root tree gets checked. `autoclip` is the
+local example here; `chiri`, `handy` and `easytier-gui` are upstream ones.
 
 ```bash
 python scripts/scoop_manifest.py gen --name myapp --recipe github-nsis-7z \
@@ -204,42 +212,6 @@ never JSON semantics.
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.
 
-**Baseline (88 manifests)**: 4 errors, 75 warnings, 33 fully clean. Two of these
-errors are long-standing upstream repo defects, not fresh breakage:
-
-| manifest | Issue | Rule |
-| :--- | :--- | :--- |
-| `edrawmax8`, `mpv.net-cm` | no `checkver` and no `autoupdate`, so Excavator can never refresh them | E003 |
-| `mpv.net-cm` | file name has a `.`, which `^[a-z0-9][a-z0-9-]*$` rejects | E009 |
-| `feishu` | `architecture.64bit.hash` is not a 64-char sha256, and no `autoupdate.hash` says where to refetch it | E011 |
-| 9 manifests | plaintext `http://` somewhere in the manifest (`aboboo`, `kingdraw`, `tim`, `msys2-cn`, …), mostly vendors with no https endpoint | W102 (15 findings) |
-| 9 manifests | `version` carries letters or a date (`26.7.2-0`, `2026-06-11`), so version comparison may misbehave | W107 |
-
-The warning profile is led by W105 (35 findings), then W102 (15 across 9 files)
-and W107 (9 files); W106 (5) is non-SPDX licence strings, W110 (5) is a URL that
-will not follow a bump, W103 (2) is `architecture` without per-arch `autoupdate`,
-W104 (2) is a version hard-coded in a URL that no longer matches `version`, and
-W101 (2) is a `description` that ends with a period or runs past 120 chars.
-`qt-creator-cn` also carries a non-sha256 hash but escapes E011 because its
-`autoupdate.hash` declares where to refetch it — the rule's intended escape
-hatch, and a good illustration of why it is not simply "hash must be sha256".
-
-**On the W105 spike.** W105 was dead code in the Extras-Plus build: it was gated
-on the literal English heading `## ⭐️ Summary`, which this repo spells
-`## ⭐️ 总结`, so it never fired here and the table was never actually audited.
-Now that the gate is on "the README has summary tables" rather than on a fixed
-title, the check runs, and the 35 findings split cleanly:
-
-| count | what it means | example |
-| :--- | :--- | :--- |
-| 17 | the `开源镜像` mirror table lists *display names*, so the manifest name is absent as a literal link | manifest `blender-cn`, README `Blender-cn`; the hint reads `the README lists it as 'Blender-cn' (display-name casing differs…)` |
-| 18 | genuinely not listed in any summary table | `ainiee`, `pixpin`, `videocaptioner`, `vmware-workstation-pro`, … |
-
-The 17 are a stable convention in that one section and can be ignored; the 18
-are real README gaps worth closing. W105's hint now names the exact spelling it
-found, so the two cases are distinguishable without re-reading the README by
-hand.
-
 ## 6. Boundaries
 
 Not for: installers that need interaction, MSI customisation, or packages with
@@ -291,7 +263,7 @@ differences are the ones this bucket actually forces.
 
 | Area | Extras-Plus | Extras-CN |
 | :--- | :--- | :--- |
-| Repo | `Scoopforge/Extras-Plus` (56 manifests, English) | `Scoopforge/Extras-CN` (88 manifests, Chinese-facing) |
+| Repo | `Scoopforge/Extras-Plus` (56 manifests, English) | `Scoopforge/Extras-CN` (90 manifests, Chinese-facing) |
 | `USER_AGENT` | `+https://github.com/Scoopforge/Extras-Plus` | `+https://github.com/Scoopforge/Extras-CN` |
 | CI branch | `main` | `master` |
 | README tables | one `## ⭐️ Summary`, 5 `###` sections in English | one `## ⭐️ 总结`, `### 跨平台` / `### Win 专属` / `### 开源镜像`, the first with `####` sub-sections |

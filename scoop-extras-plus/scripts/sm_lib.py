@@ -6,7 +6,7 @@ Layers:
     recipes      load_recipes / recipe_by_id / build_manifest (assets/recipes.jsonc is the single source of truth)
     checkver     detect_latest (github / url+regex / url+jsonpath+regex+replace)
     hashing      sha256_url / sha256_file
-    lint        RULES / lint_manifest_text
+    lint        RULES / lint_manifest_text / scan_line_endings
     README      parse_summary / insert_summary_row
 
 Every public function raises SmError on failure; the CLI turns that into a readable message.
@@ -307,11 +307,19 @@ def load_manifest(path: Path) -> OrderedDict:
     return data
 
 
+def to_crlf(text: str) -> str:
+    """Normalize every line ending to CRLF, the .editorconfig standard for these repos.
+
+    Lone CR is folded in as well, so a file that reached disk with old-Mac endings
+    comes out consistent instead of half-converted.
+    """
+    return text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\r\n")
+
+
 def dumps_manifest(data: dict, preserve_order: bool = False) -> str:
     """Serialize in this repo's style: 4-space indent, CRLF endings, trailing newline, non-ASCII kept literal."""
     tree = data if preserve_order else order_tree(data)
-    text = json.dumps(tree, indent=4, ensure_ascii=False)
-    return text.replace("\r\n", "\n").replace("\n", "\r\n") + "\r\n"
+    return to_crlf(json.dumps(tree, indent=4, ensure_ascii=False)) + "\r\n"
 
 
 def write_manifest(path: Path, data: dict, preserve_order: bool = False) -> None:
@@ -1254,6 +1262,13 @@ RULES = OrderedDict(
                 "checkver.github points at api.github.com, which Scoop turns into a 404",
             ),
         ),
+        (
+            "W112",
+            (
+                "warning",
+                "a text file in the repo is not CRLF (.editorconfig requires crlf)",
+            ),
+        ),
     ]
 )
 
@@ -1759,6 +1774,70 @@ def lint_manifest_text(
                 )
             )
 
+    return findings
+
+
+# Directories that never hold repo content: VCS metadata, tool caches and agent
+# scratch space. .editorconfig's [*] covers them in principle, but they are
+# generated, git-ignored, and not this skill's to police, so the scan prunes them
+# rather than reporting noise nobody would act on.
+REPO_SCAN_EXCLUDE_DIRS = frozenset(
+    {
+        ".git",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".workbuddy",
+        "__pycache__",
+        "node_modules",
+    }
+)
+
+
+def _is_text_file(path: Path) -> bool:
+    """A file counts as text when it decodes as UTF-8 and carries no NUL byte."""
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return False
+    if b"\x00" in data:
+        return False
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    return True
+
+
+def scan_line_endings(repo_root: Path) -> list[Finding]:
+    """W112: report every text file in the repo whose line endings are not CRLF.
+
+    .editorconfig sets end_of_line = crlf for [*] and .gitattributes normalizes
+    the working tree to match, so a bare LF on disk means something wrote around
+    both. The scan is read-only by design: it ranges over paths this skill does
+    not own (bin/, scripts/, .github/), so those are reported rather than
+    rewritten. Only the files the skill itself writes -- bucket/*.json and
+    README.md -- are eligible for --fix-format.
+    """
+    findings: list[Finding] = []
+    for current, dirnames, filenames in os.walk(repo_root):
+        dirnames[:] = sorted(d for d in dirnames if d not in REPO_SCAN_EXCLUDE_DIRS)
+        for filename in sorted(filenames):
+            path = Path(current) / filename
+            if not _is_text_file(path):
+                continue
+            raw = path.read_bytes()
+            crlf = raw.count(b"\r\n")
+            bare_lf = raw.count(b"\n") - crlf
+            if not bare_lf:
+                continue
+            rel = path.relative_to(repo_root).as_posix()
+            detail = (
+                f"mixed CRLF and LF ({crlf} CRLF, {bare_lf} LF)"
+                if crlf
+                else f"{bare_lf} LF line ending(s), expected CRLF"
+            )
+            findings.append(Finding("W112", f"{rel}: {detail}", rel))
     return findings
 
 

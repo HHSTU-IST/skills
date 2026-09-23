@@ -44,6 +44,7 @@ Warnings do not affect installation but they slow down maintenance. With
 | W109 | Warning  | formatting does not match .editorconfig (indentation / CRLF / trailing newline) |
 | W110 | Warning  | autoupdate URL has no $version, so the download URL stays stale after a bump    |
 | W111 | Warning  | checkver.github points at api.github.com, which Scoop turns into a 404          |
+| W112 | Warning  | a text file in the repo is not CRLF (.editorconfig requires crlf)                |
 
 ## How to fix each rule
 

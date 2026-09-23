@@ -8,7 +8,7 @@ description: >
   shortcuts, optionally syncing the README summary table; update edits fields by
   dotted path, bumps the version while rewriting hard-coded URLs, recomputes
   hashes and probes upstream for the latest release (batch sweep supported); lint
-  runs 22 rules against this repo's CI and .editorconfig conventions and repairs
+  runs 23 rules against this repo's CI and .editorconfig conventions and repairs
   formatting with --fix-format. The write target is $env:Scoop/buckets/extras-plus.
   Triggers: generate manifest, new manifest, update manifest, lint manifest,
   scoop manifest, scoop-extras-plus, bucket manifest, checkver, autoupdate, hash
@@ -39,7 +39,7 @@ Package layout:
   docs <-> code, repo round-trip, lint baseline
 - `references/manifest-fields.md` manifest field reference (this repo's rules)
 - `references/recipes.md` when each of the 16 recipes applies, and what it emits
-- `references/lint-rules.md` the 22 rules and how to fix each one
+- `references/lint-rules.md` the 23 rules and how to fix each one
 - `references/coverage.md` the upstream survey behind the catalog, and the gaps
 - `assets/recipes.jsonc` the single source of truth for recipes: plain JSON under
   a deliberately non-`.json` name -- see "1. Hard constraints"
@@ -55,9 +55,6 @@ Globally installed at
 `$env:USERPROFILE/.workbuddy/skills/scoop-extras-plus`, a junction onto this
 repo's `skills/scoop-extras-plus`, so the repo stays the single source of truth.
 Every example below is relative to the package root.
-
-Managed interpreter on this machine:
-`$env:USERPROFILE/.workbuddy/binaries/python/versions/3.13.12/python.exe`.
 
 ## 1. Hard constraints
 
@@ -89,7 +86,7 @@ Managed interpreter on this machine:
 | :--- | :--- | :--- | :--- |
 | **generate** | `gen` | Build a manifest from a recipe and fill it in, optionally sync README | `--list-recipes`, `--from`, `--recipe`, `--fetch-hash`, `--hash-from-file`, `--section`, `--dry-run` |
 | **update** | `upd` | Edit fields / bump version + rewrite URLs / recompute hashes / probe upstream | `--name`, `--all`, `--set`, `--unset`, `--version`, `--rehash`, `--checkver [--apply]` |
-| **lint** | `check` | Run the 22 rules, repair formatting | `--name`, `--json`, `--strict`, `--fix-format`, `--rules` |
+| **lint** | `check` | Run the 23 rules, repair formatting | `--name`, `--json`, `--strict`, `--fix-format`, `--rules` |
 
 Shared option `--repo <bucket repo root>` overrides the target. Without it the
 script takes `$env:Scoop/buckets/extras-plus` whenever that is a bucket repo, and

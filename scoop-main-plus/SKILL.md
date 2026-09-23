@@ -8,7 +8,7 @@ description: >
   shortcuts, optionally syncing the README summary row; update edits fields by
   dotted path, bumps the version while rewriting hard-coded URLs, recomputes
   hashes and probes upstream for the latest release (batch sweep supported);
-  lint runs 22 rules against this repo's CI and .editorconfig conventions and
+  lint runs 23 rules against this repo's CI and .editorconfig conventions and
   repairs formatting with --fix-format. The target bucket is resolved at run
   time from $Scoop, so an installed copy writes new manifests into
   $Scoop/buckets/main-plus from any working directory.
@@ -37,7 +37,7 @@ Package layout:
   repo round-trip, lint baseline
 - `references/manifest-fields.md` manifest field reference (this repo's rules)
 - `references/recipes.md` when each of the 18 recipes applies, and what it emits
-- `references/lint-rules.md` the 22 rules and how to fix each one
+- `references/lint-rules.md` the 23 rules and how to fix each one
 - `references/coverage.md` the upstream survey behind the catalog, and the gaps
 - `assets/recipes.jsonc` the single source of truth for recipes. The `.jsonc`
   suffix is deliberate -- see the hard constraints below
@@ -94,7 +94,7 @@ on the managed interpreter at
 | :--- | :--- | :--- | :--- |
 | **generate** | `gen` | Build a manifest from a recipe and fill it in, optionally sync README | `--list-recipes`, `--from`, `--recipe`, `--fetch-hash`, `--hash-from-file`, `--language`, `--flat-url`, `--dry-run` |
 | **update** | `upd` | Edit fields / bump version + rewrite URLs / recompute hashes / probe upstream | `--name`, `--all`, `--set`, `--unset`, `--version`, `--rehash`, `--readme`, `--checkver [--apply]` |
-| **lint** | `check` | Run the 22 rules, repair formatting | `--name`, `--json`, `--strict`, `--fix-format`, `--rules` |
+| **lint** | `check` | Run the 23 rules, repair formatting | `--name`, `--json`, `--strict`, `--fix-format`, `--rules` |
 
 Shared option `--repo <bucket repo root>`. Without it the script walks up from
 the cwd looking for a directory holding both `bucket/` and `README.md`, and
