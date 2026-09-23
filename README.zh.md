@@ -51,7 +51,7 @@ npx skills add <owner>/<repo> -y                 # 项目级（默认行为）
 
 ## 调用 skill
 
-这些 skill 都不需要显式命令来触发。六个都没有声明 `disable-model-invocation`，因此 WorkBuddy 是拿你的措辞去匹配 `description` 及其触发词，从而决定加载哪一个。由此推出两件事：**用 skill 已经列出的词汇来表述需求**，是让它被加载的关键；而当一句话可能落在多个 skill 上时，**直接点名**才是强制指定它的手段。
+这些 skill 都不需要显式命令来触发。九个都没有声明 `disable-model-invocation`，因此 WorkBuddy 是拿你的措辞去匹配 `description` 及其触发词，从而决定加载哪一个。由此推出两件事：**用 skill 已经列出的词汇来表述需求**，是让它被加载的关键；而当一句话可能落在多个 skill 上时，**直接点名**才是强制指定它的手段。
 
 下面的例子都用各 skill 自己的触发词。凡是封装了 CLI 的 skill，也会给出它将要构造的调用形式——很多时候，知道一个精确调用的形状比知道触发词更有用。
 
@@ -89,7 +89,11 @@ npx skills add <owner>/<repo> -y                 # 项目级（默认行为）
 对 python/ 目录跑一遍 lint 和类型检查。
 ```
 
-第二条值得单独说明：这个 skill 在问清楚你要 `micromamba` 还是 `uv`、以及具体环境名之前，不会安装任何东西——`pip install` 会被直接拒绝。
+```text
+跑一下 code/fit_model.py。
+```
+
+第二条值得单独说明：这个 skill 在问清楚你要 `micromamba` 还是 `uv`、以及具体环境名之前，不会安装任何东西——`pip install` 会被直接拒绝。第四条是同一道门禁的运行侧：只要脚本的 import 越出标准库就不会直接跑，而是先探测本机环境、再由你在交互提示里选定；那个提示永远留一个「暂停，我自己装」的出口。
 
 ### project-tex
 
@@ -222,7 +226,7 @@ extras-plus 里哪些包的版本和 URL 已经对不上了？
 | 分组         | Skill                                     | 一句话                                |
 | :----------- | :---------------------------------------- | :------------------------------------ |
 | 工具         | [`skill-draft`](#skill-draft)             | 构建 skill 包，并为其中每个文件设门禁 |
-| 项目规范     | [`project-py`](#project-py)               | Python：包管理器、代码风格、ruff + ty |
+| 项目规范     | [`project-py`](#project-py)               | Python：环境、包管理、风格、ruff + ty |
 | 项目规范     | [`project-tex`](#project-tex)             | LaTeX 数学公式：环境、括号、记号      |
 | 项目规范     | [`project-typ`](#project-typ)             | Typst 课件：资源、版式、编译          |
 | 语言角       | [`anchor-french`](#anchor-french)         | 法语角主持资料包                      |
@@ -230,6 +234,8 @@ extras-plus 里哪些包的版本和 URL 已经对不上了？
 | Scoop bucket | [`scoop-main-plus`](#scoop-main-plus)     | Main-Plus bucket 的 manifest          |
 | Scoop bucket | [`scoop-extras-plus`](#scoop-extras-plus) | Extras-Plus bucket 的 manifest        |
 | Scoop bucket | [`scoop-extras-cn`](#scoop-extras-cn)     | Extras-CN bucket 的 manifest          |
+
+下面每个 skill 小节都配一张 mermaid 流程图，画的是模型实际走的那条路。若某个分组本身是同一套架构的多次移植，共有部分只画一次，各成员的图只画它自己多出来的那一段。
 
 ## 工具
 
@@ -258,20 +264,65 @@ python <this skill dir>/scripts/verify.py <file-or-dir>...
 
 `SKILL.md` 里还有一节很长的「门禁细节」，记录了那些花了真实调试时间的坑——为什么 `oxlint` 需要 `--deny-warnings`、为什么 `oxipng` 的退出码不可信、为什么 `.jsonc` 这个后缀有时是刻意为之而非拼错。
 
+流程如下，回跳门禁的那一环画在它真正发生的位置：
+
+```mermaid
+flowchart TD
+    A["1 敲定身份：name、description、调用方式"] --> B["2 敲定骨架：SKILL.md、scripts、references、assets"]
+    B --> C["3 写文件"]
+    C --> D["4 逐个文件过门禁"]
+    D --> S1["内置检查"] --> S2["修复，退出码忽略"] --> S3["复核，必须全零"]
+    S3 --> E{"门禁退出码"}
+    E -->|0| F["5 用最小样例真跑一次入口脚本"]
+    E -->|1| G["残留问题：手改，或工具已把结果写回磁盘"]
+    E -->|2| H["门禁或规则表自身坏了"]
+    G --> D
+    H --> D
+    F --> I["6 汇报：文件 / 残留问题 / 门禁退出码"]
+```
+
 ## 项目规范
 
-这三个 skill 为另一个独立仓库（lectures）编码内部约定。前两个是被动的：它们描述约定，不运行任何东西。`project-tex` 是其中的例外——它自带检查脚本，因此也有机械执行的一半。
+这三个 skill 为另一个独立仓库（lectures）编码内部约定。前两个是被动的：它们描述约定、动手前先问，但不自带工具。`project-tex` 是其中的例外——它自带检查脚本，因此也有机械执行的一半。
 
 ### project-py
 
 写 `.py` 源码的规则。Notebook 明确不在范围内。
 
 - **包管理器是硬门禁。** 禁止 `pip install`。依赖只能通过 `micromamba` 或 `uv` 变更，且先与用户确认选哪个——用 `micromamba` 时，还要在动手前问清具体的环境名。
+- **运行同样设门禁。** 只要脚本的 import 越出标准库，就不会直接跑——先探测本机的 `micromamba` / `mamba` 环境，再由你在交互提示里选定；该提示永远带一个「暂停，我自己装」的出口，选中即结束任务，而不是悄悄装点什么。
 - **风格。** 用 `enumerate()` / `zip()` 迭代，绝不用 `range(len())`；Matplotlib 走面向对象接口并设 `constrained_layout=True`；装饰批量通过 `ax.set(...)`，spines 作为单个列表传入。
 - **静态检查顺序固定：format → check → ty。** 格式化不是可选项，因为 `ruff check` 过了并不代表格式没问题。`ty` 必须指向一个确实装了依赖的解释器，否则会刷出一大片假的 `unresolved-import` 告警。
 - **任何地方都不写绝对路径、不写固定版本号**——文档、脚本、配置（含 `ty.toml`）一视同仁。两者都在运行时解析，因为硬编码的路径在机器一变的那一刻就变成错误信息。
 
 `references/toolchain.md` 存放命令速查与隔离注意事项。
+
+三条路进入同一个 skill：变更依赖、普通改动，以及要运行的脚本：
+
+```mermaid
+flowchart TD
+    A["需要变更依赖"] --> B{"先问：micromamba 还是 uv"}
+    B -->|pip| X["直接拒绝，永远不是选项"]
+    B -->|micromamba| C["再问具体环境名"]
+    B -->|uv| D["默认仓库内 .venv，无需再问"]
+    C --> E["通过该管理器安装"]
+    D --> E
+    E --> W["写或改 .py 源码"]
+    W --> G["1 ruff format，永远第一步"]
+    G --> H["2 ruff check 加 no-fix，排除 notebook"]
+    H --> I["3 ty check，指向装有依赖的环境"]
+    I --> J{"三步都干净"}
+    J -->|否| K["修完从第 1 步重跑"]
+    K --> G
+    J -->|是| L["过检查清单，然后汇报"]
+
+    R["要运行一个脚本"] --> S{"import 是否全在标准库内"}
+    S -->|是| T["直接跑，不必追问"]
+    S -->|否| U["探测 micromamba 与 mamba 环境，逐个试 import"]
+    U --> V{"列出候选，由用户选一个"}
+    V -->|某个环境| Y["在该环境里运行，全程不用 pip"]
+    V -->|暂停，我自己装| Z["报告探测结论后停下"]
+```
 
 ### project-tex
 
@@ -283,6 +334,20 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 - **写完跑检查。** `scripts/check_style.py` 是规则表的机械孪生，共用同一套九个 id，只报告不改写；退出码 0 即为完成标准。
 
 `references/examples.md` 存放每种环境可整块照抄的样例，这也是单靠规则表最难推断的部分。
+
+四步，检查脚本就是完成标准：
+
+```mermaid
+flowchart TD
+    A["写或改一条公式"] --> B["1 按语义挑外层环境"]
+    B --> C["2 定括号尺寸与记号"]
+    C --> D["3 定字体命令"]
+    D --> E["4 对改过的文件跑 check_style.py"]
+    E --> F{"有 finding 吗"}
+    F -->|有| G["按提示改，改完重跑"]
+    G --> E
+    F -->|无，退出码 0| H["完成；list-rules 可证明脚本与规则表仍然一致"]
+```
 
 这个检查脚本本身值得单说一句：它既读 Markdown 也读 `.tex`，从 `$…$`、`$$…$$`、`\(…\)`、`\[…\]` 以及 `latex` 代码块里抽取公式，其余部分以不破坏字符偏移的方式置空，因此报出的位置仍能对上正确的行列。`--list-rules` 兼作一致性审计：如果某个 id 只存在于脚本中而没写进 `SKILL.md`，它会失败。
 
@@ -297,6 +362,28 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 - **不要展示 PDF。** 编译只用于验证。报告结论——是否构建成功、哪一行失败、`slide_qa.py` 标记了哪几页——而不是把 PDF 推到用户编辑器里。
 
 `references/packages.md` 记录三个包导出的符号；`references/syntax.md` 收集高频 Typst 写法与坑。
+
+课件是最后才碰的东西，一切外部内容先落成文件：
+
+```mermaid
+flowchart TD
+    A["改动一份 .typ 课件"] --> B{"需要新 helper 吗"}
+    B -->|需要| C["依次检索 lib/lib.typ、packages/local、packages/preview"]
+    C --> D{"包里有现成实现吗"}
+    D -->|有| E["直接用包的版本"]
+    D -->|没有| F["写进仓库的 lib/，绝不内联"]
+    B -->|不需要| G
+    E --> G["所有外部内容都落成文件"]
+    F --> G
+    G --> H["代码放 python/ blender/ cv40examples/，用 read() 取回"]
+    G --> I["图片放 images/，用 figure(image(...), caption: none) 包住"]
+    G --> J["数据放 data/，CSV 优先，喂给 tableq(data, n)"]
+    H --> K["跑 typstyle；原本是 CRLF 的要还原换行"]
+    I --> K
+    J --> K
+    K --> L["带字体路径编译，再跑 slide_qa.py"]
+    L --> M["只汇报结论：是否构建成功、哪一行失败、哪几页被标记"]
+```
 
 ## 语言角
 
@@ -332,9 +419,49 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 
 法语角的主持资料包，按 DELF / DALF（B1–C2）标注。提问编排走五问——一级语法点（最多两个）、据其衍生的二级语法点、参与者水平、话题、规模——其中话题那一问提供三条路径：从题库挑选、随机取一个，或自行输入。
 
+intake 是一台由配置驱动的状态机，而不是靠模型自行判断：
+
+```mermaid
+flowchart TD
+    A["主持法语角"] --> Q1["Q1 一级语法点，最多两个"]
+    Q1 --> Q2["Q2 二级语法点，选项由 Q1 决定"]
+    Q2 --> Q3["Q3 参与者水平"]
+    Q3 --> Q4{"Q4 话题"}
+    Q4 -->|从题库挑| Q5
+    Q4 -->|随机一个| Q5
+    Q4 -->|自己输入| Q5
+    Q5["Q5 规模"] --> B["corner_skill.py 导出 fr-corner-brief.md"]
+    B --> C["读取简报，已确定的参数不再追问"]
+    C --> D["一页主持脚本，30 题穿插在 3 个部分里"]
+    D --> E["按词性分组的生词表"]
+    E --> F["写入 docs/fr-voyage.md"]
+    F --> G["跑 rumdl fmt，不可用时静默跳过"]
+    G --> H["打开预览"]
+```
+
 ### anchor-spanish
 
-西班牙语角的主持资料包，同一条流水线，但按 DELE 标注。它的话题库是自有的，而不是法语库的翻译版；intake 收敛为四问，因为话题由水平和语法点自动推荐，不再单独询问。
+西班牙语角的主持资料包，同一条流水线，但按 DELE 标注。它的话题库是自有的，而不是法语库的翻译版；语法点树、词性分组名与词汇量目标也各自独立，而 intake 跑的仍是同一套五问题编排。
+
+同一台状态机，按 DELE 标注：
+
+```mermaid
+flowchart TD
+    A["主持西语角"] --> Q1["Q1 一级语法点，最多两个"]
+    Q1 --> Q2["Q2 二级语法点，选项由 Q1 决定"]
+    Q2 --> Q3["Q3 参与者水平"]
+    Q3 --> Q4{"Q4 话题"}
+    Q4 -->|从题库挑| Q5
+    Q4 -->|随机一个| Q5
+    Q4 -->|自己输入| Q5
+    Q5["Q5 规模"] --> B["corner_skill.py 导出 es-corner-brief.md"]
+    B --> C["读取简报，已确定的参数不再追问"]
+    C --> D["一页主持脚本，30 题穿插在 3 个部分里"]
+    D --> E["按词性分组的生词表"]
+    E --> F["写入 docs/es-viajes.md"]
+    F --> G["跑 rumdl fmt，不可用时静默跳过"]
+    G --> H["打开预览"]
+```
 
 ## Scoop bucket
 
@@ -357,7 +484,24 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 | `update`   | `upd`   | 改字段、升版本、重算哈希、探测上游 |
 | `lint`     | `check` | 跑规则目录并修复格式               |
 
-除 `--checkver`、`--fetch-hash` 与 `--rehash` 外全部离线。只用 Python 标准库，因此 Python 3.11+ 均可运行。脚本自行推导包根目录，可从任意工作目录执行。
+除 `--checkver`、`--fetch-hash` 与 `--rehash` 外全部离线。只用 Python 标准库，且仓库的 Python 目标版本为 3.14；脚本未使用任何受版本限制的语法，因此更早的 3.x 也能解析。脚本自行推导包根目录，可从任意工作目录执行。
+
+三条命令背后是同一条管线：
+
+```mermaid
+flowchart TD
+    S["解析 bucket 根目录：--repo，否则从 cwd 向上找，再否则 $Scoop/buckets/name"] --> G
+    G["上游发了新包"] --> GEN["generate，别名 gen"]
+    U["上游发了新版本"] --> UPD["update，别名 upd"]
+    A["审计现有内容"] --> LIN["lint，别名 check"]
+    GEN --> RC["配方目录 assets/recipes.jsonc"]
+    RC --> RE["规则引擎，23 条规则"]
+    UPD --> RE
+    LIN --> RE
+    RE --> D{"有错误级发现吗"}
+    D -->|有| X["拦住写入，force 可覆盖"]
+    D -->|无| W["写入 bucket/app.json 与 README 汇总行"]
+```
 
 ### 共同保证
 
@@ -377,11 +521,42 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 
 `generate` 会先敲定六个问题——上游、交付内容、版本、什么进 PATH、是否真要快捷方式、README 用什么语言实现——并且是问而不是猜。这个 bucket 输出规范键序，用 `--flat-url` 折叠单架构的 `architecture` 块，并在 `references/coverage.md` 里为它的 18 个配方逐一记录入选依据。
 
+`generate` 先问再建，哈希有三个正当来源：
+
+```mermaid
+flowchart TD
+    A["generate：上游发了新包"] --> Q["六个问题先问清，绝不猜"]
+    Q --> Q1["上游是谁、交付什么、版本号"]
+    Q1 --> Q2["什么进 PATH、是否真要快捷方式、README 用什么语言"]
+    Q2 --> R["列出配方，对照 references/recipes.md 复核"]
+    R --> AR["arch 只接受 64bit 与 arm64，或用 flat-url 折叠单架构块"]
+    AR --> HS{"哈希从哪来"}
+    HS -->|fetch-hash| B["构建，写 bucket/app.json，同步 README 行"]
+    HS -->|hash-from-file| B
+    HS -->|两者都没给| HINT["命令打印 bin/checkhashes.ps1 提示"]
+    HINT --> B
+    B --> L["对该 app 跑一次 lint 复核"]
+```
+
 ### scoop-extras-plus
 
 **Extras-Plus** bucket 的 manifest（56 个 manifest，面向英文）。十六个配方；README 有一张 `## ⭐️ Summary` 表横跨五个 `###` 小节，三列为 `App / Auto-Update ? / Note`。
 
 基线是**整个 bucket 零错误级发现**。`lint` 打印实时计数而非冻结数字，因为该 bucket 会随每次 autoupdate 提交而增长。`SKILL.md` 列出了迄今发现的真实问题，每条都标出是哪个规则抓到的——URL 里钉的版本已与 `version` 不符、Scoop 不接受的 `md5:` 哈希前缀，以及若干处与 manifest 名漂移了的 README 拼写。
+
+关于这个 bucket 的多数问题，`lint` 一个命令就能答：
+
+```mermaid
+flowchart TD
+    A["关于 extras-plus 的一个问题"] --> Q{"问的是什么"}
+    Q -->|哪些包漂移了| L["lint，只读，W104 直接作答，不必跑升版本"]
+    Q -->|加一个新包| G["gen，16 个配方，README 行写进唯一那张 Summary 表"]
+    Q -->|升一个版本| U["upd，checkver、apply、rehash"]
+    L --> R["规则引擎，23 条规则"]
+    G --> R
+    U --> R
+    R --> C["汇报；基线是零错误，所以计数是实时打印的"]
+```
 
 ### scoop-extras-cn
 
@@ -394,6 +569,21 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 - **一条在别处是死代码的规则。** README 检查原先以英文字面标题 `## ⭐️ Summary` 为门，而本仓库写作 `## ⭐️ 总结`，于是它从未触发过。改成以「README 里有汇总表」为门之后，它翻出 35 处发现，干净地分成 17 条稳定约定与 18 处真实的 README 缺失——这很好地说明了为什么「谁也过不了的检查」比没有检查更糟。
 
 两个上游规则修复被带进了这个构建，因为它们是潜在 bug 而非仓库特有选择：`jsonpath` / `xpath` 的正则要求，以及一个过度转义、永远匹配不上的递归删除模式。
+
+差异最集中的地方是 README 那条路：
+
+```mermaid
+flowchart TD
+    A["给 extras-cn 添加或同步一个包"] --> B{"描述是中文吗"}
+    B -->|是，88 个里有 57 个| C["强制英文措辞的规则让位，句末句号检查一并让位"]
+    B -->|不是| D["英文规则照常生效"]
+    C --> E["同步 README 汇总行"]
+    D --> E
+    E --> F["四列，中文名称排在 App 之前，CJK 单元格按显示宽度补齐"]
+    F --> G{"拼写与 manifest 名一致吗"}
+    G -->|不一致| H["W105 触发，并报出它找到的那个拼写"]
+    G -->|一致| I["行已写入，其余列逐字节不变"]
+```
 
 ## 维护一个 skill
 

@@ -22,7 +22,33 @@ micromamba run -n <env> python -c "import sys; print(sys.prefix)"
 
 结论请**运行时现取**，不要从本文件抄。
 
-> 已知 conda 环境名：`base`、`kaggle`、`rstupid`，需在使用时询问。
+> 名字与路径每次都用 `micromamba env list` 现取，再按下节的方式交给用户选定。
+
+## 运行脚本：环境交给用户选，不自己挑
+
+跑任何 import 越出标准库的 `.py` 之前，先探测、再询问：
+
+```bash
+# 1) 本机有哪些管理器（有的机器只有 micromamba，没有 mamba/conda）
+command -v micromamba mamba conda
+
+# 2) 环境清单 —— 名字与路径都从这里现取，不要凭印象写
+micromamba env list
+
+# 3) 逐个候选环境试探依赖（比只看 `env list` 有用得多：包在不在，一试便知）
+micromamba run -n <env> python -c "import numpy, pandas"
+```
+
+再用 **`AskUserQuestion`** 把选择权交给用户：一个候选环境一项，`description`
+写清路径与「已可导入 / 缺什么」，依赖齐全的排第一，`header` ≤ 12 字符
+（例如 `运行环境`），并且**必留一项「暂停，我自己装」**。
+
+选中暂停项就**报告探测结论并终止**——不要 pip、也不要换个环境硬跑。
+选定之后，安装（若需要）与运行用同一个名字：
+
+```bash
+micromamba run -n <选定的环境> python <脚本>
+```
 
 ## 检查流程
 
@@ -38,7 +64,7 @@ ruff format code python --check --exclude "*.ipynb"   # 复核用
 ruff check code python --no-fix --exclude "*.ipynb"
 
 # 3) 类型检查 —— 必须借 micromamba 指定环境
-micromamba run -n kaggle ty check code python
+micromamba run -n <选定的环境> ty check code python
 ```
 
 ### 为什么 format 必须排在最前
@@ -149,7 +175,8 @@ git checkout -- <path>        # 还原被连坐的文件
 python -m venv .venv && .venv/Scripts/python -m pip install numpy pillow
 ```
 
-（若要装包，仍须遵守 SKILL.md 的包管理器硬规则 —— 先问 micromamba/uv。）
+（若要装包，仍须遵守 SKILL.md 的包管理器硬规则 —— 先问 micromamba/uv；
+非 conda 场景的选择同样由用户拍板，对话框里的「暂停，我自己装」就是这个用途。）
 
 ## 常见 ty 假警报：OpenCV 存根
 

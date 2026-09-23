@@ -89,7 +89,11 @@ I need scipy for the next section — set it up.
 Lint and type-check the python/ directory.
 ```
 
-The second is worth noting: this skill will not install anything until it has asked which of `micromamba` / `uv` you want, and which environment by name — `pip install` is refused outright.
+```text
+Run code/fit_model.py.
+```
+
+The second is worth noting: this skill will not install anything until it has asked which of `micromamba` / `uv` you want, and which environment by name — `pip install` is refused outright. The fourth shows the same gate on the running side: a script whose imports reach past the standard library does not run until the environments on the machine have been probed and you have picked one in a prompt — and that prompt always offers a pause-and-install-it-yourself way out.
 
 ### project-tex
 
@@ -222,7 +226,7 @@ It shares the architecture with `anchor-french` and differs mainly in the exam l
 | Group               | Skill                                     | One line                                        |
 | :------------------ | :---------------------------------------- | :---------------------------------------------- |
 | Tooling             | [`skill-draft`](#skill-draft)             | Build a skill package and gate every file in it |
-| Project conventions | [`project-py`](#project-py)               | Python: package manager, style, ruff + ty       |
+| Project conventions | [`project-py`](#project-py)               | Python: environment, packages, style, ruff + ty       |
 | Project conventions | [`project-tex`](#project-tex)             | LaTeX math: environments, brackets, notation    |
 | Project conventions | [`project-typ`](#project-typ)             | Typst lecture slides: assets, layout, compile   |
 | Language corners    | [`anchor-french`](#anchor-french)         | French conversation-circle host kit             |
@@ -230,6 +234,8 @@ It shares the architecture with `anchor-french` and differs mainly in the exam l
 | Scoop buckets       | [`scoop-main-plus`](#scoop-main-plus)     | Manifests for the Main-Plus bucket              |
 | Scoop buckets       | [`scoop-extras-plus`](#scoop-extras-plus) | Manifests for the Extras-Plus bucket            |
 | Scoop buckets       | [`scoop-extras-cn`](#scoop-extras-cn)     | Manifests for the Extras-CN bucket              |
+
+Each skill section below carries a mermaid flowchart of the path the model actually walks. Where a group is one architecture ported more than once, the shared part is drawn once for the group and a member's diagram shows only what that member adds.
 
 ## Tooling
 
@@ -258,20 +264,65 @@ Adding a file type normally means editing `scripts/file-types.json` only, with n
 
 `SKILL.md` also carries a long "gate details" section recording the traps that cost real debugging time — why `oxlint` needs `--deny-warnings`, why `oxipng`'s exit code cannot be trusted, why a `.jsonc` name is sometimes deliberate rather than a typo.
 
+The flow, with the loop back into the gate drawn where it really happens:
+
+```mermaid
+flowchart TD
+    A["1 Fix the identity: name, description, invocation"] --> B["2 Fix the skeleton: SKILL.md, scripts, references, assets"]
+    B --> C["3 Write the files"]
+    C --> D["4 Gate each file"]
+    D --> S1["builtin check"] --> S2["repair, exit code ignored"] --> S3["verify, must be all zero"]
+    S3 --> E{"gate exit code"}
+    E -->|0| F["5 Run the entry script once, on a real sample"]
+    E -->|1| G["Residual problem: fix by hand, or the tool already rewrote the file"]
+    E -->|2| H["The gate or the rules table itself is broken"]
+    G --> D
+    H --> D
+    F --> I["6 Report: file / residual problems / exit code"]
+```
+
 ## Project conventions
 
-These three encode house rules for a separate lectures repository. The first two are passive: they describe conventions, they do not run anything. `project-tex` is the exception among them — it ships a checker, so it has a mechanical half as well.
+These three encode house rules for a separate lectures repository. The first two are passive: they describe conventions and ask before acting, but ship no tooling of their own. `project-tex` is the exception among them — it ships a checker, so it has a mechanical half as well.
 
 ### project-py
 
 Rules for writing `.py` source. Notebooks are explicitly out of scope.
 
 - **Package manager is a hard gate.** `pip install` is forbidden. Dependencies change only through `micromamba` or `uv`, and the choice is settled with the user first — with `micromamba`, the specific environment name is asked for before anything runs.
+- **Running is gated too.** A script whose imports reach past the standard library is not executed until the machine's `micromamba` / `mamba` environments have been probed and the environment has been picked by the user in an interactive prompt. That prompt always carries a "pause, I will install it myself" exit, which ends the task instead of installing anything silently.
 - **Style.** Iterate with `enumerate()` / `zip()`, never `range(len())`; Matplotlib through the object-oriented interface with `constrained_layout=True`; batch decorations through `ax.set(...)` and pass spines as one list.
 - **Static checking order is fixed: format → check → ty.** Formatting is not optional, because `ruff check` passing says nothing about formatting. `ty` must be pointed at an interpreter that actually has the dependencies, or it floods the output with false `unresolved-import` alarms.
 - **No absolute paths and no pinned version numbers** anywhere in docs, scripts or config — including `ty.toml`. Both are resolved at run time, since a hard-coded path turns into wrong information the moment the machine changes.
 
 `references/toolchain.md` holds the command cookbook and the isolation notes.
+
+Three paths into the same skill: a dependency change, an ordinary edit, and a script to run:
+
+```mermaid
+flowchart TD
+    A["A dependency has to change"] --> B{"Ask first: micromamba or uv"}
+    B -->|pip| X["Refused outright, never an option"]
+    B -->|micromamba| C["Then ask for the environment name"]
+    B -->|uv| D["The repo .venv, nothing else to ask"]
+    C --> E["Install through that manager"]
+    D --> E
+    E --> W["Write or edit the .py source"]
+    W --> G["1 ruff format, always first"]
+    G --> H["2 ruff check with no-fix, notebooks excluded"]
+    H --> I["3 ty check, pointed at the environment holding the dependencies"]
+    I --> J{"all three clean"}
+    J -->|no| K["Fix, then rerun from step 1"]
+    K --> G
+    J -->|yes| L["Walk the checklist, then report"]
+
+    R["A script has to run"] --> S{"Do the imports stay inside the standard library"}
+    S -->|yes| T["Run it, nothing to ask"]
+    S -->|no| U["Probe the micromamba and mamba environments, test the imports"]
+    U --> V{"Offer the candidates, the user picks one"}
+    V -->|an environment| Y["Run inside it, never through pip"]
+    V -->|pause and install it myself| Z["Report what was probed and stop"]
+```
 
 ### project-tex
 
@@ -283,6 +334,20 @@ House style for LaTeX math. Every rule is a "don't write X, write Y" pair, so th
 - **Run the checker after writing.** `scripts/check_style.py` is the mechanical twin of the rule table, sharing the same nine ids, and reports rather than rewrites; exit code 0 is the completion criterion.
 
 `references/examples.md` holds copy-ready blocks for each environment, which is the part hard to infer from the rule table alone.
+
+Four steps, and the checker is the completion criterion:
+
+```mermaid
+flowchart TD
+    A["Write or edit a formula"] --> B["1 Pick the outer environment by meaning"]
+    B --> C["2 Fix bracket sizes and notation"]
+    C --> D["3 Fix the font commands"]
+    D --> E["4 Run check_style.py on the changed file"]
+    E --> F{"findings"}
+    F -->|some| G["Apply the hint, then rerun"]
+    G --> E
+    F -->|none, exit code 0| H["Done; list-rules proves script and rule table still agree"]
+```
 
 The checker is worth a note on its own: it reads Markdown as well as `.tex`, extracting math from `$…$`, `$$…$$`, `\(…\)`, `\[…\]` and `latex`-fenced code blocks, and blanking the rest without disturbing character offsets so a finding still maps to the right line and column. `--list-rules` doubles as a consistency audit, failing if an id exists in the script but is undocumented in `SKILL.md`.
 
@@ -297,6 +362,28 @@ Rules for writing and editing Typst lecture decks.
 - **Don't show the PDF.** Compiling is for verification only. Report the conclusion — whether it built, which line failed, which pages `slide_qa.py` flagged — instead of pushing a PDF into the user's editor.
 
 `references/packages.md` documents the exported symbols of the three packages; `references/syntax.md` collects high-frequency Typst patterns and pitfalls.
+
+The deck is the last thing touched, everything external is a file first:
+
+```mermaid
+flowchart TD
+    A["Change a .typ deck"] --> B{"A new helper is needed"}
+    B -->|yes| C["Search lib/lib.typ, then packages/local, then packages/preview"]
+    C --> D{"Already solved"}
+    D -->|yes| E["Use the package version"]
+    D -->|no| F["Write it into the repo lib/, never inline"]
+    B -->|no| G
+    E --> G["Everything external lands in a file"]
+    F --> G
+    G --> H["Code to python/ blender/ cv40examples/, pulled back with read()"]
+    G --> I["Images to images/, wrapped in figure(image(...), caption: none)"]
+    G --> J["Data to data/, CSV first, feeding tableq(data, n)"]
+    H --> K["typstyle; restore CRLF when the file was CRLF"]
+    I --> K
+    J --> K
+    K --> L["Compile with the font path, then slide_qa.py"]
+    L --> M["Report the conclusion: did it build, which line failed, which pages were flagged"]
+```
 
 ## Language corners
 
@@ -332,9 +419,49 @@ They are the same package ported to two languages, so they share a file layout (
 
 Host kit for a French conversation circle, tagged against DELF / DALF (B1–C2). The question plan runs five questions — first-level grammar (up to two), second-level grammar derived from it, participant level, topic, and group size — and the topic question offers three routes: pick from the pool, take a random one, or type your own.
 
+The intake is a state machine driven by the config, not by the model's judgement:
+
+```mermaid
+flowchart TD
+    A["Host a French corner"] --> Q1["Q1 first-level grammar point, up to two"]
+    Q1 --> Q2["Q2 second-level point, options derived from Q1"]
+    Q2 --> Q3["Q3 participant level"]
+    Q3 --> Q4{"Q4 topic"}
+    Q4 -->|from the pool| Q5
+    Q4 -->|a random one| Q5
+    Q4 -->|your own| Q5
+    Q5["Q5 group size"] --> B["corner_skill.py exports fr-corner-brief.md"]
+    B --> C["Read the brief, never re-ask what it already fixes"]
+    C --> D["One page of host script, 30 questions woven into 3 parts"]
+    D --> E["Vocabulary table grouped by part of speech"]
+    E --> F["Write docs/fr-voyage.md"]
+    F --> G["rumdl fmt, skipped silently when rumdl is unavailable"]
+    G --> H["Open the preview"]
+```
+
 ### anchor-spanish
 
-Host kit for a Spanish conversation circle, the same pipeline tagged against DELE instead. The topic pool is its own rather than a translation of the French one, and the intake collapses to four questions because the topic is auto-recommended from the level and grammar point instead of being asked outright.
+Host kit for a Spanish conversation circle, the same pipeline tagged against DELE instead. The topic pool is its own rather than a translation of the French one, and so are the grammar tree, the POS group names and the vocabulary targets; the intake itself runs the identical five-question plan.
+
+The same state machine, tagged against DELE:
+
+```mermaid
+flowchart TD
+    A["Host a Spanish corner"] --> Q1["Q1 first-level grammar point, up to two"]
+    Q1 --> Q2["Q2 second-level point, options derived from Q1"]
+    Q2 --> Q3["Q3 participant level"]
+    Q3 --> Q4{"Q4 topic"}
+    Q4 -->|from the pool| Q5
+    Q4 -->|a random one| Q5
+    Q4 -->|your own| Q5
+    Q5["Q5 group size"] --> B["corner_skill.py exports es-corner-brief.md"]
+    B --> C["Read the brief, never re-ask what it already fixes"]
+    C --> D["One page of host script, 30 questions woven into 3 parts"]
+    D --> E["Vocabulary table grouped by part of speech"]
+    E --> F["Write docs/es-viajes.md"]
+    F --> G["rumdl fmt, skipped silently when rumdl is unavailable"]
+    G --> H["Open the preview"]
+```
 
 ## Scoop buckets
 
@@ -357,7 +484,24 @@ They differ only where their target repositories force them to. The extras build
 | `update`   | `upd`   | Edit fields, bump the version, recompute hashes, probe upstream |
 | `lint`     | `check` | Run the rule catalog and repair formatting                      |
 
-Everything runs offline except `--checkver`, `--fetch-hash` and `--rehash`. Python standard library only, so any Python 3.11+ works. The scripts derive the package root themselves and run from any working directory.
+Everything runs offline except `--checkver`, `--fetch-hash` and `--rehash`. Python standard library only, and the repo's Python target is 3.14; the scripts use no version-gated syntax, so an older 3.x still parses them. The scripts derive the package root themselves and run from any working directory.
+
+One pipeline behind all three commands:
+
+```mermaid
+flowchart TD
+    S["Resolve the bucket root: --repo, else a walk up from the cwd, else $Scoop/buckets/name"] --> G
+    G["Upstream shipped a new package"] --> GEN["generate, alias gen"]
+    U["Upstream shipped a new version"] --> UPD["update, alias upd"]
+    A["Audit what is already there"] --> LIN["lint, alias check"]
+    GEN --> RC["Recipe catalog, assets/recipes.jsonc"]
+    RC --> RE["Rule engine, 23 rules"]
+    UPD --> RE
+    LIN --> RE
+    RE --> D{"Error-level findings"}
+    D -->|yes| X["The write is blocked, force overrides"]
+    D -->|no| W["Write bucket/app.json plus the README summary row"]
+```
 
 ### Shared guarantees
 
@@ -377,11 +521,42 @@ Manifests for the **Main-Plus** bucket, which is bin-first: 39 of its 40 package
 
 `generate` settles six questions up front — upstream, what ships, version, what goes on PATH, whether a shortcut is genuinely wanted, and the implementation language for the README — and asks rather than guesses. This bucket emits canonical key order, uses `--flat-url` to collapse a single-architecture `architecture` block, and documents the population evidence behind each of its 18 recipes in `references/coverage.md`.
 
+`generate` asks before it builds, and the hash has three sanctioned sources:
+
+```mermaid
+flowchart TD
+    A["generate: upstream shipped a new package"] --> Q["Settle six questions by asking, never guessing"]
+    Q --> Q1["Upstream, what ships, version"]
+    Q1 --> Q2["What goes on PATH, whether a shortcut is really wanted, README language"]
+    Q2 --> R["List the recipes, cross-checked against references/recipes.md"]
+    R --> AR["arch takes 64bit and arm64 only, or flat-url to collapse the single-architecture block"]
+    AR --> HS{"Where does the hash come from"}
+    HS -->|fetch-hash| B["Build, write bucket/app.json, sync the README row"]
+    HS -->|hash-from-file| B
+    HS -->|neither given| HINT["The command prints the bin/checkhashes.ps1 hint"]
+    HINT --> B
+    B --> L["lint the app to confirm"]
+```
+
 ### scoop-extras-plus
 
 Manifests for the **Extras-Plus** bucket (56 manifests, English-facing). Sixteen recipes; the README carries one `## ⭐️ Summary` table across five `###` sections with the three columns `App / Auto-Update ? / Note`.
 
 Baseline: **0 error-level findings** anywhere in the bucket. `lint` prints live counts rather than a frozen number, because the bucket grows with every autoupdate commit. `SKILL.md` lists the real issues found so far, each tagged with the rule that caught it — a version pinned in the URL that no longer matches `version`, an `md5:` hash prefix Scoop does not accept, and a few README spellings that drifted from the manifest name.
+
+Most questions about this bucket are answered by `lint` alone:
+
+```mermaid
+flowchart TD
+    A["A question about extras-plus"] --> Q{"What is being asked"}
+    Q -->|which packages have drifted| L["lint, read-only, W104 answers it without a bump"]
+    Q -->|add a package| G["gen, 16 recipes, the README row goes into the one Summary table"]
+    Q -->|bump a version| U["upd, checkver, apply, rehash"]
+    L --> R["Rule engine, 23 rules"]
+    G --> R
+    U --> R
+    R --> C["Report; the baseline is zero errors, so counts print live"]
+```
 
 ### scoop-extras-cn
 
@@ -394,6 +569,21 @@ What makes this one distinct:
 - **A rule that was dead code elsewhere.** The README check was gated on the literal English heading `## ⭐️ Summary`, which this repo spells with a Chinese heading, so it never fired. Re-gated on "the README has summary tables", it surfaced 35 findings that split cleanly into 17 stable-convention entries and 18 genuine README gaps — a good illustration of why a check nobody can pass is worse than no check.
 
 Two upstream rule fixes were carried into this build because they are latent bugs rather than repo-specific choices: the `jsonpath` / `xpath` regex requirement, and a recursive-delete pattern that was over-escaped and could never match.
+
+The README path is where this build differs most:
+
+```mermaid
+flowchart TD
+    A["Add or sync a package in extras-cn"] --> B{"Is the description Chinese"}
+    B -->|yes, 57 of 88 are| C["English-phrasing rules stand down, the trailing-period check with them"]
+    B -->|no| D["The English rules apply as written"]
+    C --> E["Sync the README summary row"]
+    D --> E
+    E --> F["Four columns, Chinese display name before App, CJK cells padded by display width"]
+    F --> G{"Does the spelling match the manifest name"}
+    G -->|no| H["W105 fires and names the spelling it found"]
+    G -->|yes| I["Row written, every other column byte-identical"]
+```
 
 ## Working on a skill
 

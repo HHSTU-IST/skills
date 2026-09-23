@@ -1,6 +1,6 @@
 ---
 name: project-py
-description: 编写、修改、检查 Python 代码时使用。规定包管理器选择（micromamba/uv，严禁 pip 直装）、代码风格（enumerate、matplotlib 面向对象接口）、以及用 ruff + ty 做静态检查的完整流程。触发词：Python、py、ruff、ty、lint、类型检查、包管理、micromamba、uv、matplotlib、subplots。
+description: 编写、修改、检查、运行 Python 代码时使用。规定运行脚本前的虚拟环境探测与选择（交互对话框）、包管理器选择（micromamba/uv，严禁 pip 直装）、代码风格（enumerate、matplotlib 面向对象接口）、以及用 ruff + ty 做静态检查的完整流程。触发词：Python、py、ruff、ty、lint、类型检查、包管理、micromamba、mamba、conda、uv、matplotlib、subplots、运行脚本、虚拟环境。
 agent_created: true
 ---
 
@@ -15,16 +15,17 @@ agent_created: true
 
 | 选项 | 追问 | 安装命令（示意） |
 | --- | --- | --- |
-| `micromamba` / `mamba` | **必须再问具体虚拟环境名** | `micromamba install -n <env> -c conda-forge <pkg> -y` |
+| `micromamba` / `mamba` | **必须再问具体虚拟环境名**（见第 2 节） | `micromamba install -n <env> -c conda-forge <pkg> -y` |
 | `uv` | 默认仓库内 `.venv` | `uv add <pkg>` / `uv sync` |
 
-当前约定：**micromamba + `kaggle` 环境**。
-环境目录**不要写死**，运行时扫描 `PATH` 与环境变量现取：
+本机最常用的选择是 `kaggle` 环境，但它**只是候选之一**——具体用哪个，一律由
+**第 2 节的对话框**确认，文档与脚本里都不写死。
+环境目录同样**不要写死**，运行时扫描 `PATH` 与环境变量现取：
 
 ```bash
 command -v micromamba                     # 工具在哪
 micromamba env list                       # 有哪些环境、各自路径
-micromamba run -n kaggle python -c "import sys; print(sys.prefix)"   # 该环境前缀
+micromamba run -n <env> python -c "import sys; print(sys.prefix)"   # 该环境前缀
 ```
 
 > 仓库根没有 `pyproject.toml` / `requirements.txt`，依赖一律由 conda 环境承载。
@@ -33,7 +34,49 @@ micromamba run -n kaggle python -c "import sys; print(sys.prefix)"   # 该环境
 需要时现场用 `command -v` / `env list` / `sys.prefix` / `--version` 解析；
 `ty.toml` 里也**不要**写死解释器路径。
 
-## 2. 代码风格（写 Python 时必须遵守）
+## 2. 运行脚本：先探测环境，再让用户选（硬规则）
+
+**要执行的 `.py` 只要 import 越出标准库，就不许自己挑个解释器直接跑。**
+顺序固定为判定 → 探测 → 询问 → 执行，四步缺一不可。
+
+**① 判定脚本有没有第三方依赖。** 把它的 import 与 `sys.stdlib_module_names` 比对；
+全是标准库就直接跑，不必打扰用户。
+
+**② 探测本机可用的环境**（只读，结论现取）：
+
+```bash
+command -v micromamba mamba conda                   # 本机有哪些管理器
+micromamba env list                                 # 环境名 + 各自路径
+micromamba run -n <env> python -c "import <mod>"    # 逐个试探依赖是否齐全
+```
+
+**③ 用 `AskUserQuestion` 让用户自己选环境**，不要替他决定：
+
+| 要点 | 要求 |
+| --- | --- |
+| 选项 | 一个候选环境一项，环境名照抄探测结果；`description` 里给证据——环境路径 + 哪些依赖已可导入、缺哪个 |
+| 逃生项 | **必须有一项「暂停，我自己装」**，选中即刻停止任务 |
+| 排序 | 依赖已齐全的环境放第一项，并标注「推荐」 |
+| 数量上限 | 单个问题最多 4 项（宿主上限）；候选多于 3 个时分批追问，**每批都要带逃生项** |
+| 兜底口子 | 宿主 UI 总会额外给一个自由输入框，用户可当场敲一个不在列表里的环境名；想改用 `uv` / 项目内 `.venv` 的走这个口子或选暂停项，再按第 1 节处理 |
+| `header` | ≤ 12 字符，例如 `运行环境` |
+
+**④ 在选定环境里执行**：
+
+```bash
+micromamba run -n <选定的环境> python <脚本>
+```
+
+用的是 `mamba` / `conda` 就换对应命令。**任何时候都不用 `pip`**（见第 1 节）。
+
+> 选中「暂停，我自己装」不是失败出口，而是合法的收尾：**报告已探明的环境清单，
+> 以及每个环境各缺哪些包，然后停下**。不要顺手 `pip install`，
+> 也不要挑一个依赖不全的环境硬跑。
+
+同一会话里已选定的环境可以沿用，不必每次重问；一旦换了脚本、换了依赖集，
+或者用户说了「换个环境」，就重新走一遍上面四步。
+
+## 3. 代码风格（写 Python 时必须遵守）
 
 ### 基础
 
@@ -102,7 +145,7 @@ ax.spines["bottom"].set_visible(False)
 
 > `zip()` 记得显式写 `strict=`（ruff 会要求），避免引入新告警。
 
-## 3. 静态检查：ruff + ty（**改完必须先格式化**）
+## 4. 静态检查：ruff + ty（**改完必须先格式化**）
 
 **顺序固定：① `ruff format` → ② `ruff check` → ③ `ty check`。**
 格式化和 lint 是两个不同的动作，`check` 不会替你排版；**改完代码不跑 format 就算没做完**。
@@ -118,8 +161,9 @@ ruff format code python --exclude "*.ipynb"
 #    根 pyproject 设了 fix=true，必须加 --no-fix
 ruff check  code python --no-fix --exclude "*.ipynb"
 
-# 3) 类型检查 —— 必须指向装有依赖的解释器（环境名现取，勿写死路径）
-micromamba run -n kaggle ty check code python
+# 3) 类型检查 —— 必须指向装有依赖的解释器
+#    环境名用第 2 节对话框选定的那个（现取，勿写死路径）
+micromamba run -n <选定的环境> ty check code python
 ```
 
 > **为什么 format 排在最前**：`ruff check --fix` 的自动修复（尤其 `UP` 类升级）
@@ -134,7 +178,7 @@ micromamba run -n kaggle ty check code python
 - **改完必须格式化。** 不要以为 `check` 通过就等于格式正确。
 - `ruff check` 默认**会改写文件**（根配置 `fix = true`）。只想检视时加 `--no-fix`。
 - `ty` 裸跑会拿系统 Python 当检查环境，普通项目会刷出一片 `unresolved-import` 假警报。
-  **务必用 `micromamba run -n <env> ty check ...`**。
+  **务必用 `micromamba run -n <env> ty check ...`**（`<env>` 由第 2 节选定）。
 - **不要在文档、脚本、配置（含 `ty.toml`）里写工具或环境的绝对路径。**
   路径一律运行时扫描 `PATH` / 环境变量现取，否则换机或升级后必然失效
   （`ty.toml` 写死失效时 ty 会以 `Invalid environment.python setting` 直接 exit 2，
@@ -143,7 +187,7 @@ micromamba run -n kaggle ty check code python
   文档里写死版本会在升级后变成误导信息。
 - 不要在子目录新建 `pyproject.toml`，否则该目录会丢掉根 `[tool.ruff.lint]` 的规则集。
 
-## 4. Markdown 文档检查：rumdl（**改完本技能自身的 .md 后必跑**）
+## 5. Markdown 文档检查：rumdl（**改完本技能自身的 .md 后必跑**）
 
 本技能是 Markdown 交付物，改动 `SKILL.md` 或 `references/*.md` 后必须用系统环境里的
 `rumdl` 检查并修复。
@@ -192,7 +236,7 @@ rumdl check skills/project-py/
 - **不要在仓库根新建 `rumdl.toml` 来放宽规则** —— 那会影响其他人的文档；
   局部豁免请用行内 `<!-- rumdl-disable... -->`。
 
-## 5. 检查清单
+## 6. 检查清单
 
 改完代码后按此顺序执行，**不得跳过格式化那一步**。
 
@@ -204,7 +248,14 @@ rumdl check skills/project-py/
 - [ ] ① **已执行 `ruff format code python --exclude "*.ipynb"`**
       （输出应为 `left unchanged` 或已完成改写）
 - [ ] ② `ruff check code python --no-fix --exclude "*.ipynb"` 无输出
-- [ ] ③ `micromamba run -n kaggle ty check code python` 通过（或剩余项均为已记录的存根假警报）
+- [ ] ③ `micromamba run -n <选定的环境> ty check code python` 通过（或剩余项均为已记录的存根假警报）
+
+**要运行带第三方依赖的 `.py` 时，追加：**
+
+- [ ] 已判定脚本确实含第三方 import（全标准库就直接跑）
+- [ ] 已探测本机 micromamba / mamba 环境，并逐个确认依赖是否可导入
+- [ ] **已用 `AskUserQuestion` 让用户选定环境，选项里带了「暂停，我自己装」**
+- [ ] 在选定的那个环境里执行，**全程没有用 pip**
 
 **改动本技能自身的 `.md` 时，追加：**
 
@@ -215,4 +266,4 @@ rumdl check skills/project-py/
 ## 参考文件
 
 - `references/toolchain.md` —— ruff / ty / micromamba / rumdl 的用法、
-  **路径现取方式**、隔离 venv、缓存放雷
+  **路径现取方式**、**运行脚本时的环境探测与选择**、隔离 venv、缓存放雷

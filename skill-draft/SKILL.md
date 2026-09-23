@@ -256,9 +256,17 @@ moved.
   in docs does not false-positive, and binary files are skipped silently.
   It can stay on by default precisely because it does not false-positive —
   a check that false-positives gets turned off sooner or later.
-- Do not remove the syntax-compilation stage. `ruff format` 0.16.6 used to
-  strip the parentheses from `except (A, B):` into Python 2 syntax (fixed
-  in 0.16.8), and it is still the cheapest regression net available.
+- Do not remove the syntax-compilation stage. An older `ruff format` used to
+  strip the parentheses from `except (A, B):` regardless of target version
+  (a bug since fixed), and this stage is what turns that rewrite into a loud
+  failure the next time the gate runs.
+- At `target-version = "py314"` ruff drops those parentheses *on purpose*
+  (PEP 758), and the result parses on 3.14+ only. Code that has to keep
+  parsing on an older interpreter therefore avoids the tuple form entirely:
+  the `no-local-paths` checker keeps its two failure modes in separate
+  `except` clauses, which no formatter rewrites. A bare `# fmt: skip` is the
+  other way out, but it stops protecting the line the moment the comment is
+  lost, and prose after the directive silently disables it.
 
 ## Anti-patterns
 

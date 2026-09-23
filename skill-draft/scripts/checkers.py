@@ -163,10 +163,17 @@ def no_local_paths(path: Path) -> list[str]:
 
     Binary files are skipped silently; portability is not their concern, so a decode
     failure is not counted as a problem.
+
+    The two failure modes deliberately stay in separate clauses. Written as one
+    tuple, `except (UnicodeDecodeError, OSError):`, the formatter would rewrite it
+    at `target-version = "py314"` into the bare 3.14-only form (PEP 758) and this
+    file would stop parsing on the 3.13 interpreter the gate may be running on.
     """
     try:
         source = path.read_text(encoding="utf-8")
-    except UnicodeDecodeError, OSError:
+    except UnicodeDecodeError:
+        return []
+    except OSError:
         return []
     lowered = source.lower()
     for needle in _home_needles():

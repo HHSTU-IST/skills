@@ -271,9 +271,6 @@ python code/check_example_fit.py --margin 60      # 只列余量 < 60pt 的
 python code/asset_check.py
 ```
 
-`code/slide_qa.py` 需要 numpy + Pillow：
-`~/.workbuddy/binaries/python/envs/default/Scripts/python.exe`。
-
 ## 4. 格式化：typstyle
 
 **改完 `.typ` 要跑 typstyle。** 命令：`typstyle --check .`（只读）、`typstyle --diff <f>`（只读预览）、

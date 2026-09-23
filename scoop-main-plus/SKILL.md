@@ -58,9 +58,8 @@ python scripts/scoop_manifest.py <command> [options]
 python scripts/sm_selftest.py
 ```
 
-Pure standard library, so any Python 3.11+ works. On this machine the gates run
-on the managed interpreter at
-`~/.workbuddy/binaries/python/versions/3.13.12/python.exe`.
+Pure standard library, and the repo's Python target is 3.14; nothing in the
+scripts is version-gated, so an older 3.x still runs them.
 
 ## 1. Hard constraints
 
