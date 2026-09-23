@@ -44,6 +44,7 @@ micromamba run -n <env> python -c "import numpy, pandas"
 （例如 `运行环境`），并且**必留一项「暂停，我自己装」**。
 
 选中暂停项就**报告探测结论并终止**——不要 pip、也不要换个环境硬跑。
+**所有候选环境都缺依赖时同理**：这仍是「报告 + 停下」，不是解禁 pip 的开关。
 选定之后，安装（若需要）与运行用同一个名字：
 
 ```bash
@@ -167,16 +168,28 @@ git checkout -- <path>        # 还原被连坐的文件
 
 ## 独立脚本的 Python（非 conda 场景）
 
-需要 numpy + Pillow 的脚本（如 `code/slide_qa.py`）跑在托管隔离 venv 里。
+需要 numpy + Pillow 的脚本（如 `code/slide_qa.py`）跑在一个隔离环境里。
 **不要抄路径**，用 `<托管 Python> -m venv <venv 目录>` 的方式现建现用，
 或按运行时环境变量（如 `WORKBUDDY_*` / `VIRTUAL_ENV`）解析；解析不到就现建：
 
 ```bash
-python -m venv .venv && .venv/Scripts/python -m pip install numpy pillow
+python -m venv .venv && .venv/Scripts/python <脚本>
 ```
 
-（若要装包，仍须遵守 SKILL.md 的包管理器硬规则 —— 先问 micromamba/uv；
-非 conda 场景的选择同样由用户拍板，对话框里的「暂停，我自己装」就是这个用途。）
+**建环境可以，往里装包不行 —— 除非装包走的是 SKILL.md 第 1 节的合法入口。**
+`pip` 在任何场景下都不是选项，**包括「这个包本机哪个环境都没有」的时候**：
+
+| 情形 | 做法 |
+| --- | --- |
+| conda 环境里已有该包 | 直接用：`micromamba run -n <env> python <脚本>` |
+| conda 环境缺该包，用户选 conda | `micromamba install -n <用户给的环境名> -c conda-forge <pkg> -y` |
+| 非 conda 场景，用户选 uv | `uv run --with <pkg> <脚本>`（临时环境，不需要 pyproject），或 `uv add` / `uv sync` 进项目 |
+| **两条路都不通，或用户选了「暂停」** | **停下报告缺什么，交给用户；`pip` 不是兜底** |
+
+禁止的形式（不限于）：`pip install` / `pip uninstall`、`python -m pip`、
+`.venv/Scripts/python -m pip install ...`、`uv pip ...`，
+以及把 `pip` 塞进 `&&` 链或脚本里顺手执行。想从结构上断掉后路，
+建一次性环境时用 `python -m venv --without-pip .venv`。
 
 ## 常见 ty 假警报：OpenCV 存根
 

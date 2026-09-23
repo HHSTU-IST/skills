@@ -1,6 +1,6 @@
 ---
 name: project-py
-description: 编写、修改、检查、运行 Python 代码时使用。规定运行脚本前的虚拟环境探测与选择（交互对话框）、包管理器选择（micromamba/uv，严禁 pip 直装）、代码风格（enumerate、matplotlib 面向对象接口）、以及用 ruff + ty 做静态检查的完整流程。触发词：Python、py、ruff、ty、lint、类型检查、包管理、micromamba、mamba、conda、uv、matplotlib、subplots、运行脚本、虚拟环境。
+description: 编写、修改、检查、运行 Python 代码时使用。规定运行脚本前的虚拟环境探测与选择（交互对话框）、包管理器选择（只允许 micromamba/uv，任何情况下都不用 pip，缺包也要停下而不是 pip 补）、代码风格（enumerate、matplotlib 面向对象接口）、以及用 ruff + ty 做静态检查的完整流程。触发词：Python、py、ruff、ty、lint、类型检查、包管理、micromamba、mamba、conda、uv、matplotlib、subplots、运行脚本、虚拟环境。
 agent_created: true
 ---
 
@@ -10,13 +10,24 @@ agent_created: true
 
 ## 1. 包管理器：先问，再动手（硬规则）
 
-**严禁使用 `pip install` / `pip uninstall` / `pip` 直装。** 任何依赖变动只能通过下面
-两者之一完成，且**必须先询问用户选哪一个**：
+**严禁使用 `pip` 装包或卸包 —— 包在本机不存在时也不行。** 「这个包哪个环境都没有」
+从来不是放宽这条规则的理由：缺依赖时的正确反应是**报告并停下**，不是去 `pip`。
+
+禁止的形式包括（不限于）：`pip install` / `pip uninstall`、`python -m pip`、
+`<环境>/Scripts/python -m pip`（或 `bin/python -m pip`），以及把 `pip` 塞进一条
+`&&` 链、写进脚本或 `Makefile` 里顺手执行。**判定看的是「有没有调用 pip」，
+不是「这条命令是不是用户点的头」** —— 用户同意装包，也仍然只走下面两条合法入口。
+
+任何依赖变动只能通过下面两者之一完成，且**必须先询问用户选哪一个**：
 
 | 选项 | 追问 | 安装命令（示意） |
 | --- | --- | --- |
 | `micromamba` / `mamba` | **必须再问具体虚拟环境名**（见第 2 节） | `micromamba install -n <env> -c conda-forge <pkg> -y` |
 | `uv` | 默认仓库内 `.venv` | `uv add <pkg>` / `uv sync` |
+
+**两条路都不通时（本机没有 micromamba / mamba / conda，也不打算用 uv），
+就停下来。** 把「缺哪个包、试过哪些环境、各自什么结论」交代清楚，交给用户处理；
+**不许退回 `pip`**，也不许用 `pip` 往系统解释器或临时 venv 里塞包补缺。
 
 本机最常用的选择是 `kaggle` 环境，但它**只是候选之一**——具体用哪个，一律由
 **第 2 节的对话框**确认，文档与脚本里都不写死。
@@ -55,7 +66,7 @@ micromamba run -n <env> python -c "import <mod>"    # 逐个试探依赖是否�
 | 要点 | 要求 |
 | --- | --- |
 | 选项 | 一个候选环境一项，环境名照抄探测结果；`description` 里给证据——环境路径 + 哪些依赖已可导入、缺哪个 |
-| 逃生项 | **必须有一项「暂停，我自己装」**，选中即刻停止任务 |
+| 逃生项 | **必须有一项「暂停，我自己装」**，选中即刻停止任务；**缺包的候选环境照实列出，但不许顺手 pip 补缺** |
 | 排序 | 依赖已齐全的环境放第一项，并标注「推荐」 |
 | 数量上限 | 单个问题最多 4 项（宿主上限）；候选多于 3 个时分批追问，**每批都要带逃生项** |
 | 兜底口子 | 宿主 UI 总会额外给一个自由输入框，用户可当场敲一个不在列表里的环境名；想改用 `uv` / 项目内 `.venv` 的走这个口子或选暂停项，再按第 1 节处理 |
@@ -67,11 +78,16 @@ micromamba run -n <env> python -c "import <mod>"    # 逐个试探依赖是否�
 micromamba run -n <选定的环境> python <脚本>
 ```
 
-用的是 `mamba` / `conda` 就换对应命令。**任何时候都不用 `pip`**（见第 1 节）。
+用的是 `mamba` / `conda` 就换对应命令。**任何时候都不用 `pip`**（见第 1 节）——
+包括所有候选环境都缺依赖、眼看就要跑不起来的时候。
 
 > 选中「暂停，我自己装」不是失败出口，而是合法的收尾：**报告已探明的环境清单，
 > 以及每个环境各缺哪些包，然后停下**。不要顺手 `pip install`，
 > 也不要挑一个依赖不全的环境硬跑。
+>
+> 这条出口的含义是**把「装包」这一步交回给用户**，不是「用户点过头就允许 pip」：
+> 后续真要装，仍然只走第 1 节的 micromamba / uv（用 micromamba 就先拿到环境名），
+> **整条链路上都不出现 `pip`**。
 
 同一会话里已选定的环境可以沿用，不必每次重问；一旦换了脚本、换了依赖集，
 或者用户说了「换个环境」，就重新走一遍上面四步。
@@ -241,6 +257,8 @@ rumdl check skills/project-py/
 改完代码后按此顺序执行，**不得跳过格式化那一步**。
 
 - [ ] 依赖变动只经 micromamba（已确认环境名）或 uv，**没有用 pip**
+- [ ] **包在本机缺失时也没有用 pip 兜底** —— 缺包就停下报告，
+      没有 `pip install` / `python -m pip` / `pip` 塞进命令链
 - [ ] 迭代用 `enumerate()` / `zip()`，没有 `range(len())`
 - [ ] matplotlib 用 OO 接口 + `constrained_layout=True`
 - [ ] 装饰用 `ax.set(...)`、spines 用列表一次性设置
@@ -255,7 +273,7 @@ rumdl check skills/project-py/
 - [ ] 已判定脚本确实含第三方 import（全标准库就直接跑）
 - [ ] 已探测本机 micromamba / mamba 环境，并逐个确认依赖是否可导入
 - [ ] **已用 `AskUserQuestion` 让用户选定环境，选项里带了「暂停，我自己装」**
-- [ ] 在选定的那个环境里执行，**全程没有用 pip**
+- [ ] 在选定的那个环境里执行，**全程没有用 pip**（缺包就停下，不 pip 补）
 
 **改动本技能自身的 `.md` 时，追加：**
 

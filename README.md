@@ -1,6 +1,6 @@
 # skills
 
-[Chinese](README.zh.md)
+[中文](README.zh.md)
 
 A collection of my daily Agent Skills.
 
@@ -93,7 +93,7 @@ Lint and type-check the python/ directory.
 Run code/fit_model.py.
 ```
 
-The second is worth noting: this skill will not install anything until it has asked which of `micromamba` / `uv` you want, and which environment by name — `pip install` is refused outright. The fourth shows the same gate on the running side: a script whose imports reach past the standard library does not run until the environments on the machine have been probed and you have picked one in a prompt — and that prompt always offers a pause-and-install-it-yourself way out.
+The second is worth noting: this skill will not install anything until it has asked which of `micromamba` / `uv` you want, and which environment by name — `pip install` is refused outright, and a package that exists in no environment at all is a reason to stop and report, not a licence to reach for pip. The fourth shows the same gate on the running side: a script whose imports reach past the standard library does not run until the environments on the machine have been probed and you have picked one in a prompt — and that prompt always offers a pause-and-install-it-yourself way out, which returns the install to you rather than opening the pip door.
 
 ### project-tex
 
@@ -226,7 +226,7 @@ It shares the architecture with `anchor-french` and differs mainly in the exam l
 | Group               | Skill                                     | One line                                        |
 | :------------------ | :---------------------------------------- | :---------------------------------------------- |
 | Tooling             | [`skill-draft`](#skill-draft)             | Build a skill package and gate every file in it |
-| Project conventions | [`project-py`](#project-py)               | Python: environment, packages, style, ruff + ty       |
+| Project conventions | [`project-py`](#project-py)               | Python: environment, packages, style, ruff + ty |
 | Project conventions | [`project-tex`](#project-tex)             | LaTeX math: environments, brackets, notation    |
 | Project conventions | [`project-typ`](#project-typ)             | Typst lecture slides: assets, layout, compile   |
 | Language corners    | [`anchor-french`](#anchor-french)         | French conversation-circle host kit             |
@@ -289,8 +289,8 @@ These three encode house rules for a separate lectures repository. The first two
 
 Rules for writing `.py` source. Notebooks are explicitly out of scope.
 
-- **Package manager is a hard gate.** `pip install` is forbidden. Dependencies change only through `micromamba` or `uv`, and the choice is settled with the user first — with `micromamba`, the specific environment name is asked for before anything runs.
-- **Running is gated too.** A script whose imports reach past the standard library is not executed until the machine's `micromamba` / `mamba` environments have been probed and the environment has been picked by the user in an interactive prompt. That prompt always carries a "pause, I will install it myself" exit, which ends the task instead of installing anything silently.
+- **Package manager is a hard gate.** `pip install` is forbidden — including when the package is missing from every environment on the machine. Dependencies change only through `micromamba` or `uv`, and the choice is settled with the user first — with `micromamba`, the specific environment name is asked for before anything runs. If neither route is available, the task stops and reports what was probed and what is missing; `pip` is not the fallback.
+- **Running is gated too.** A script whose imports reach past the standard library is not executed until the machine's `micromamba` / `mamba` environments have been probed and the environment has been picked by the user in an interactive prompt. That prompt always carries a "pause, I will install it myself" exit, which ends the task instead of installing anything silently — and picking it hands the install back to the user rather than unlocking `pip`.
 - **Style.** Iterate with `enumerate()` / `zip()`, never `range(len())`; Matplotlib through the object-oriented interface with `constrained_layout=True`; batch decorations through `ax.set(...)` and pass spines as one list.
 - **Static checking order is fixed: format → check → ty.** Formatting is not optional, because `ruff check` passing says nothing about formatting. `ty` must be pointed at an interpreter that actually has the dependencies, or it floods the output with false `unresolved-import` alarms.
 - **No absolute paths and no pinned version numbers** anywhere in docs, scripts or config — including `ty.toml`. Both are resolved at run time, since a hard-coded path turns into wrong information the moment the machine changes.
@@ -302,7 +302,7 @@ Three paths into the same skill: a dependency change, an ordinary edit, and a sc
 ```mermaid
 flowchart TD
     A["A dependency has to change"] --> B{"Ask first: micromamba or uv"}
-    B -->|pip| X["Refused outright, never an option"]
+    B -->|pip| X["Refused outright, never an option, not even as a last resort"]
     B -->|micromamba| C["Then ask for the environment name"]
     B -->|uv| D["The repo .venv, nothing else to ask"]
     C --> E["Install through that manager"]
@@ -319,7 +319,9 @@ flowchart TD
     R["A script has to run"] --> S{"Do the imports stay inside the standard library"}
     S -->|yes| T["Run it, nothing to ask"]
     S -->|no| U["Probe the micromamba and mamba environments, test the imports"]
-    U --> V{"Offer the candidates, the user picks one"}
+    U --> M{"Does any environment already have every import"}
+    M -->|no| N["Say what is missing and stop, pip is never the fallback"]
+    M -->|yes| V{"Offer the candidates, the user picks one"}
     V -->|an environment| Y["Run inside it, never through pip"]
     V -->|pause and install it myself| Z["Report what was probed and stop"]
 ```
