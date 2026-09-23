@@ -1277,9 +1277,7 @@ DANGEROUS = [
         "Set-ExecutionPolicy Unrestricted",
     ),
     (
-        re.compile(
-            r"(?i)Remove-Item\s+.*-Recurse\s+.*C:\\\\",
-        ),
+        re.compile(r"(?i)Remove-Item\s+.*-Recurse\s+.*C:\\\\"),
         "recursive delete of C:\\",
     ),
 ]
@@ -1944,7 +1942,7 @@ def insert_summary_row(
         action = "updated"
 
     for i in range(3):
-        widest = max(len(r[i]) for r in [header] + rows) if rows else widths[i]
+        widest = max(len(r[i]) for r in [header, *rows]) if rows else widths[i]
         widths[i] = max(widths[i], widest)
 
     rendered = _render_table(header, rows, widths)

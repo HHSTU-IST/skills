@@ -1,0 +1,516 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "语言角配置 v1（corner-config）",
+  "description": "语言角技能包 assets/ 内配置文件的 JSON Schema。只描述结构与取值域，不含任何语言的具体取值：选项文案、标签、阶段名、语法点名等一概由各语言包自身的数据提供。本文件在各语言包之间逐字节一致（由仓库级守卫核对）。未列出的键被允许，以便向后兼容地扩展。",
+  "type": "object",
+  "required": [
+    "meta",
+    "constraints",
+    "grammar_points",
+    "participant_levels",
+    "scales",
+    "topic_dimensions",
+    "topic_pool",
+    "time_allocation",
+    "vocab_targets",
+    "exam",
+    "question_plan",
+    "style"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "本目录内该 schema 文件的相对路径，供编辑器做补全与实时校验。"
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "skill_name",
+        "version",
+        "display_name",
+        "display_name_en",
+        "config_owner",
+        "source_of_truth",
+        "brief_filename",
+        "note"
+      ],
+      "properties": {
+        "skill_name": {
+          "type": "string",
+          "description": "技能名，须等于技能包目录名，也须等于脚本内的 SKILL_NAME。"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "语义化版本，须与 SKILL.md frontmatter 的 version 一致。"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "面向人的技能名（产出语言）。"
+        },
+        "display_name_en": {
+          "type": "string",
+          "description": "面向人的技能名（英文）。"
+        },
+        "config_owner": {
+          "type": "string",
+          "description": "本配置的文档归属：以仓库根为基准的 SKILL.md 路径。"
+        },
+        "source_of_truth": {
+          "type": "string",
+          "description": "本配置自身以仓库根为基准的路径，声明它是唯一数据源。"
+        },
+        "brief_filename": {
+          "type": "string",
+          "pattern": "\\.md$",
+          "description": "export_brief() 落盘的简报文件名。"
+        },
+        "note": {
+          "type": "string",
+          "description": "自由说明。"
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "required": [
+        "max_participants",
+        "duration_minutes",
+        "max_grammar_primary",
+        "max_topics",
+        "level_range",
+        "level_mixed_label",
+        "ask_options_per_question",
+        "questions_max_per_call"
+      ],
+      "properties": {
+        "max_participants": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "单场参与人数上限。"
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "单场时长（分钟），须等于 time_allocation 的分钟合计。"
+        },
+        "max_grammar_primary": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "一级语法点最多可选数。"
+        },
+        "max_topics": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "话题最多可选数。"
+        },
+        "level_range": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "允许的水平档位（产出语言的等级标签体系）。"
+        },
+        "level_mixed_label": {
+          "type": "string",
+          "description": "混合水平选项的展示标签。"
+        },
+        "ask_options_per_question": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "单个提问的选项上限；超出则按此数分组，子问题 id 形如 Q1#1。"
+        },
+        "questions_max_per_call": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "单次提问调用最多包含的问题数。"
+        }
+      }
+    },
+    "grammar_points": {
+      "type": "object",
+      "description": "一级语法点 id → 节点；children 为其二级条目。Q1 取键，Q2 取依赖项的 children。",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "children"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "一级语法点 id，须与所在的键名相同。"
+          },
+          "label": {
+            "type": "string",
+            "description": "展示标签（产出语言）。"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "二级条目 id。"
+                },
+                "label": {
+                  "type": "string",
+                  "description": "展示标签（产出语言）。"
+                }
+              }
+            },
+            "description": "二级语法条目列表。"
+          }
+        }
+      }
+    },
+    "participant_levels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/option"
+      },
+      "description": "参与者水平选项（含混合档）。"
+    },
+    "scales": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scale"
+      },
+      "description": "规模选项。"
+    },
+    "topic_dimensions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/option"
+      },
+      "description": "话题生成维度（方法论参考），每项须带 desc。"
+    },
+    "topic_pool": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/option"
+      },
+      "description": "话题题库：选题库、随机抽取与自定义输入的共同来源，每项须带 desc。"
+    },
+    "time_allocation": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/timeSlot"
+      },
+      "description": "固定时长的环节分配；分钟合计须等于 constraints.duration_minutes。"
+    },
+    "vocab_targets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "description": "水平键 → [下限, 上限] 生词量区间；键须与 participant_levels / level_range 对应。"
+    },
+    "exam": {
+      "type": "object",
+      "required": [
+        "levels",
+        "rules",
+        "rubric"
+      ],
+      "properties": {
+        "levels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "本包评分体系的等级标签（产出语言的考试体系）。"
+        },
+        "rules": {
+          "type": "string",
+          "description": "等级标注规则散文，写入简报。"
+        },
+        "rubric": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rubricItem"
+          },
+          "description": "各等级的能力描述。"
+        }
+      },
+      "description": "本包的评分体系对照。"
+    },
+    "question_plan": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/questionSpec"
+      },
+      "description": "交互问题编排，驱动 intake 状态机。"
+    },
+    "style": {
+      "type": "object",
+      "required": [
+        "no_hr",
+        "no_full_line_bold",
+        "output_path_template",
+        "pos_groups",
+        "phase_labels",
+        "section_labels",
+        "i18n"
+      ],
+      "properties": {
+        "no_hr": {
+          "type": "boolean",
+          "description": "为 true 时产出不得含正文 --- 分隔线。"
+        },
+        "no_full_line_bold": {
+          "type": "boolean",
+          "description": "为 true 时禁止整行加粗的伪标题。"
+        },
+        "output_path_template": {
+          "type": "string",
+          "description": "最终主持脚本的落盘路径模板，含 {topic} 占位符。"
+        },
+        "pos_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "词汇表的词性分组展示名（产出语言）。"
+        },
+        "phase_labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "阶段键 → 展示名；键须与 time_allocation[].phase 一一对应。"
+        },
+        "section_labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "章节展示名。"
+        },
+        "i18n": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "简报的全部面向人文案：解析层不硬编码任何文案，占位符形如 {v} / {lo} / {hi} / {level}。"
+        }
+      },
+      "patternProperties": {
+        "^pure_[a-z]+$": {
+          "type": "boolean",
+          "description": "产出语言标志键（键名随语言包而异），仅供 SKILL.md 与人工阅读，解析层不读取。"
+        }
+      },
+      "description": "风格约定与文案。"
+    }
+  },
+  "$defs": {
+    "option": {
+      "type": "object",
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "选项值：提交给 submit() 的 value。"
+        },
+        "label": {
+          "type": "string",
+          "description": "展示文案（产出语言）。"
+        },
+        "desc": {
+          "type": "string",
+          "description": "选项描述 / 备注，作为 AskUserQuestion 的 description。"
+        }
+      }
+    },
+    "scale": {
+      "type": "object",
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "展示文案（产出语言）。"
+        },
+        "people_min": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "该规模的人数下限。"
+        },
+        "people_max": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "该规模的人数上限，不得超过 constraints.max_participants。"
+        },
+        "minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "该规模的时长（分钟）。"
+        },
+        "note": {
+          "type": "string",
+          "description": "规模说明（产出语言）。"
+        }
+      }
+    },
+    "timeSlot": {
+      "type": "object",
+      "required": [
+        "phase",
+        "label",
+        "pct",
+        "minutes"
+      ],
+      "properties": {
+        "phase": {
+          "type": "string",
+          "description": "阶段键，须在 style.phase_labels 中有对应展示名。"
+        },
+        "label": {
+          "type": "string",
+          "description": "环节名（产出语言）。"
+        },
+        "pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "description": "占整场的比例；全部 pct 合计应约为 1.0。"
+        },
+        "minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "该环节分钟数；合计须等于 constraints.duration_minutes。"
+        }
+      }
+    },
+    "rubricItem": {
+      "type": "object",
+      "required": [
+        "level",
+        "abilities",
+        "feature"
+      ],
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "等级标签，须出现在 exam.levels 中。"
+        },
+        "abilities": {
+          "type": "string",
+          "description": "该等级可覆盖的语法能力。"
+        },
+        "feature": {
+          "type": "string",
+          "description": "该等级的典型表达特征。"
+        }
+      }
+    },
+    "questionSpec": {
+      "type": "object",
+      "required": [
+        "id",
+        "key",
+        "order",
+        "ask",
+        "type",
+        "title",
+        "header",
+        "source",
+        "max_choices",
+        "depends_on",
+        "allow_custom",
+        "mode"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^Q\\d+(#\\d+)?$",
+          "description": "问题编号（Q1–Q5），仅用于展示与日志。"
+        },
+        "key": {
+          "type": "string",
+          "description": "语义键：写入 SkillSession.answers 的索引。"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "提问顺序。"
+        },
+        "ask": {
+          "type": "boolean",
+          "description": "是否向用户提问；false 时由 auto_recommend_choices() 自动填值。"
+        },
+        "type": {
+          "enum": [
+            "multi",
+            "single"
+          ],
+          "description": "单选 / 多选。"
+        },
+        "title": {
+          "type": "string",
+          "description": "展示标题（产出语言）。"
+        },
+        "header": {
+          "type": "string",
+          "maxLength": 12,
+          "description": "提问工具的分组标签（HEADER_MAX_LEN = 12）。"
+        },
+        "source": {
+          "type": "string",
+          "description": "选项来源表达式：grammar_points(keys) / grammar_points[chosen].children / participant_levels / scales / topic_pool / topic_dimensions。"
+        },
+        "max_choices": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "最多可选数；null 表示不限。"
+        },
+        "depends_on": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "依赖的语义键，用于动态选项与跳过判断。"
+        },
+        "allow_custom": {
+          "type": "boolean",
+          "description": "是否允许自定义输入。"
+        },
+        "allow_random": {
+          "type": "boolean",
+          "description": "为 true 时在选项首位追加随机哨兵项（__random__），由 expand_choices() 展开。"
+        },
+        "mode": {
+          "enum": [
+            "select",
+            "auto_recommend"
+          ],
+          "description": "select = 询问；auto_recommend = 自动推荐。"
+        }
+      }
+    }
+  }
+}

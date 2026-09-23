@@ -211,10 +211,7 @@ CHECKVER_ORDER = [
 # manifests reach for `re`, 5 for `jp`. `gen` always emits the canonical
 # spelling; `lint` normalises aliases before checking a checkver block, so an
 # existing manifest that uses one is not reported as "unknown keys".
-CHECKVER_ALIASES = {
-    "re": "regex",
-    "jp": "jsonpath",
-}
+CHECKVER_ALIASES = {"re": "regex", "jp": "jsonpath"}
 AUTOUPDATE_ORDER = ["architecture", "url", "hash", "extract_dir", "bin", "shortcuts"]
 
 # Architecture key -> parameter suffix. The 64bit slot keeps the historical
@@ -1307,10 +1304,7 @@ DANGEROUS = [
     # with `(& $dir\scripts\conda.exe shell.powershell hook) | ... | Invoke-Expression`,
     # which is verbatim what upstream conda's own hook recipe prescribes.
     (
-        re.compile(
-            r"Invoke-Expression|\biex\b",
-            re.IGNORECASE,
-        ),
+        re.compile(r"Invoke-Expression|\biex\b", re.IGNORECASE),
         "Invoke-Expression / iex",
     ),
     (re.compile(r"-EncodedCommand", re.IGNORECASE), "-EncodedCommand"),
@@ -2091,10 +2085,7 @@ def insert_summary_row(
     header = _split_row(lines[header_row])
     app_col = _table_app_col(header)
     if app_col is None:
-        return (
-            readme_text,
-            f"section '{section}' has no App column; README untouched",
-        )
+        return (readme_text, f"section '{section}' has no App column; README untouched")
 
     separator_index = header_row + 1
     widths = [len(cell) for cell in _split_row(lines[separator_index])]
@@ -2140,7 +2131,7 @@ def insert_summary_row(
 
     for i in range(len(header)):
         widest = (
-            max(_display_width(r[i]) for r in [header] + rows) if rows else widths[i]
+            max(_display_width(r[i]) for r in [header, *rows]) if rows else widths[i]
         )
         widths[i] = max(widths[i], widest)
 

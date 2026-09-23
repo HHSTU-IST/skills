@@ -166,7 +166,7 @@ def no_local_paths(path: Path) -> list[str]:
     """
     try:
         source = path.read_text(encoding="utf-8")
-    except (UnicodeDecodeError, OSError):
+    except UnicodeDecodeError, OSError:
         return []
     lowered = source.lower()
     for needle in _home_needles():

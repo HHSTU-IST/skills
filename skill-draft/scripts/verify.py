@@ -114,8 +114,7 @@ def _parse_tools(raw: object) -> dict[str, ToolSpec]:
                 _as_str_tuple(fields.get("suffixes", []), f"tools.{name}.suffixes")
             ),
             no_target_markers=_as_str_tuple(
-                fields.get("no_target_markers", []),
-                f"tools.{name}.no_target_markers",
+                fields.get("no_target_markers", []), f"tools.{name}.no_target_markers"
             ),
         )
     return specs

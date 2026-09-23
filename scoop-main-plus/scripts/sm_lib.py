@@ -1368,9 +1368,7 @@ DANGEROUS = [
         "Set-ExecutionPolicy Unrestricted",
     ),
     (
-        re.compile(
-            r"(?i)Remove-Item\s+.*-Recurse\s+.*C:\\\\",
-        ),
+        re.compile(r"(?i)Remove-Item\s+.*-Recurse\s+.*C:\\\\"),
         "recursive delete of C:\\",
     ),
 ]
