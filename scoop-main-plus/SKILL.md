@@ -200,10 +200,19 @@ python scripts/scoop_manifest.py lint --rules          # print the rule catalog
 `--fix-format` touches formatting only (indent / CRLF / trailing newline) and
 never JSON semantics.
 
+Line endings are checked repo-wide, not just per manifest. A full `lint` also
+walks the working tree -- skipping `.git/` and the tool caches -- and reports
+every text file that is not CRLF, which is what `.editorconfig` demands for
+`[*]`. That pass is read-only, because it reaches into `bin/`, `scripts/` and
+`.github/`, which belong to Scoop and to the repo's CI; `--fix-format`
+normalises only the files this skill owns, `bucket/*.json` and `README.md`. A
+README summary sync writes CRLF unconditionally, so it cannot quietly strip the
+endings from a file it only meant to add one row to.
+
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.
 
-**Baseline (40 manifests)**: 0 errors, 13 warnings, 28 fully clean. Real issues
+**Baseline (40 manifests)**: 0 errors, 11 warnings, 29 fully clean. Real issues
 found so far:
 
 | manifest | Issue | Rule |
@@ -212,7 +221,10 @@ found so far:
 | `commix` | `license` is a URL, not an SPDX identifier | W106 |
 | `qlty`, `rheo`, `shiroa` | `license` is prose (`Business Source License 1.1`, `Apache-2.0 license`) | W106 |
 | `micromamba`, `n-m3u8dl-re`, `typst-ts` | `version` carries non-numeric parts (`2.9.0-0`, `0.6.0-beta`, `0.8.0-rc3`), which autoupdate can mishandle | W107 |
-| `typst-ts` | the only file in the repo using LF endings | W109 |
+
+Line endings are no longer among them: `typst-ts` was the only file written with
+LF, and it has since been normalised. W112 watches that class of problem across
+the whole working tree, instead of leaving it to a per-manifest rule.
 
 One issue no rule catches, worth fixing by hand: `typst-ts` installs from a
 `.zip` while its `autoupdate` points at a `.tar.gz`.

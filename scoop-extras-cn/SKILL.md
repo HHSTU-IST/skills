@@ -209,6 +209,15 @@ python scripts/scoop_manifest.py lint --rules          # print the rule catalog
 `--fix-format` touches formatting only (indent / CRLF / trailing newline) and
 never JSON semantics.
 
+Line endings are checked repo-wide, not just per manifest. A full `lint` also
+walks the working tree -- skipping `.git/` and the tool caches -- and reports
+every text file that is not CRLF, which is what `.editorconfig` demands for
+`[*]`. That pass is read-only, because it reaches into `bin/`, `scripts/` and
+`.github/`, which belong to Scoop and to the repo's CI; `--fix-format`
+normalises only the files this skill owns, `bucket/*.json` and `README.md`. A
+README summary sync writes CRLF unconditionally, so it cannot quietly strip the
+endings from a file it only meant to add one row to.
+
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.
 

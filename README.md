@@ -367,7 +367,7 @@ They differ only where their target repositories force them to. The extras build
 | :-------------- | :------------------------- | :--------------------------- | :------------------------- |
 | Target bucket   | `$Scoop/buckets/main-plus` | `$Scoop/buckets/extras-plus` | `$Scoop/buckets/extras-cn` |
 | Recipes         | 18                         | 16                           | 16                         |
-| Lint rules      | 22                         | 22                           | 22                         |
+| Lint rules      | 23                         | 23                           | 23                         |
 | README language | English                    | English                      | Chinese                    |
 
 **Common shape of each.** All three expose the same three trigger commands:
@@ -387,9 +387,10 @@ Everything runs offline except `--checkver`, `--fetch-hash` and `--rehash`. Pyth
 - **Existing key order is preserved.** `update` only slots *new* fields into their canonical position; a full reorder needs an explicit `--reorder`.
 - **Hashes are never invented.** Either `--fetch-hash` streams the download and computes it, `--hash-from-file` uses a package already on disk, or the run prints the hint to follow up with `bin/checkhashes.ps1`.
 - **The README is controlled.** Syncing touches only the summary tables it recognises and leaves every other column byte-identical. A missing section skips the sync with an explanation rather than mangling the file.
+- **Line endings are CRLF repo-wide.** `.editorconfig` sets `end_of_line = crlf` for `[*]`, and `.gitattributes` makes the working tree match. A full `lint` walks the tree and reports every text file that is not CRLF (`W112`); that pass is read-only, and `--fix-format` rewrites only the two things the skill owns, `bucket/*.json` and `README.md`.
 - **32bit is not supported.** `arch` accepts `64bit` and `arm64` only, so `url32` / `hash32` are neither accepted nor emitted.
 
-The write target is always `<repo>/bucket/<app>.json` plus the README row; `bin/`, `scripts/` and `.github/` belong to Scoop and to each repo's CI and are never touched.
+The write target is always `<repo>/bucket/<app>.json` plus the README row; `bin/`, `scripts/` and `.github/` belong to Scoop and to each repo's CI and are never written to — the `W112` pass reads them, reports them, and leaves them alone.
 
 ### scoop-main-plus
 

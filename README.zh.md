@@ -367,7 +367,7 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 | :-------------- | :------------------------- | :--------------------------- | :------------------------- |
 | 目标 bucket     | `$Scoop/buckets/main-plus` | `$Scoop/buckets/extras-plus` | `$Scoop/buckets/extras-cn` |
 | 配方数          | 18                         | 16                           | 16                         |
-| 规则数          | 22                         | 22                           | 22                         |
+| 规则数          | 23                         | 23                           | 23                         |
 | README 语言     | 英文                       | 英文                         | 中文                       |
 
 **共同形态。** 三者都对外暴露同样三条触发命令：
@@ -387,9 +387,10 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 - **已有键序保持不变。** `update` 只把*新增*字段插到其规范位置；要整体重排需显式 `--reorder`。
 - **哈希从不凭空捏造。** 要么 `--fetch-hash` 流式下载并计算，要么 `--hash-from-file` 用磁盘上已有的包，要么运行结束打印提示，让你后续用 `bin/checkhashes.ps1` 处理。
 - **README 是受控的。** 同步只碰它认得的那几张汇总表，其余列保持逐字节不变。缺少小节时会跳过同步并给出说明，而不是把文件改坏。
+- **行尾全局为 CRLF。** `.editorconfig` 对 `[*]` 设了 `end_of_line = crlf`，`.gitattributes` 让工作区与之保持一致。完整的 `lint` 会遍历目录树，报出每一个不是 CRLF 的文本文件（`W112`）；这一遍是只读的，`--fix-format` 只重写 skill 自己拥有的两样东西：`bucket/*.json` 与 `README.md`。
 - **不支持 32bit。** `arch` 只接受 `64bit` 与 `arm64`，因此 `url32` / `hash32` 既不接受也不产出。
 
-写入目标永远是 `<repo>/bucket/<app>.json` 加上 README 那一行；`bin/`、`scripts/` 与 `.github/` 属于 Scoop 及各仓库 CI，绝不触碰。
+写入目标永远是 `<repo>/bucket/<app>.json` 加上 README 那一行；`bin/`、`scripts/` 与 `.github/` 属于 Scoop 及各仓库 CI，绝不写入——`W112` 那一遍会读取并报告它们，但不动它们。
 
 ### scoop-main-plus
 
