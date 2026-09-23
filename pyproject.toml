@@ -1,0 +1,52 @@
+[tool.ruff]
+fix = true
+fix-only = true
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.format]
+# Enable reformatting of code snippets in docstrings
+docstring-code-format = true
+# Format all docstring code snippets with a line length of 60
+docstring-code-line-length = 60
+# Use `\n` line endings for all files
+line-ending = "lf"
+
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint]
+extend-select = [
+  "DTZ",
+  "E",
+  "F",
+  "I",
+  "ISC",
+  "NPY",
+  "PERF",
+  "RUF",
+  "S",
+  "SIM",
+  "TID",
+  "UP",
+  "W",
+]
+fixable = ["ALL"]
+ignore = [
+  "E501",
+  "ISC001",
+  "RUF001",
+  "RUF002",
+  "RUF003",
+  "S101",
+  "S603",
+]
+unfixable = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+combine-as-imports = true
+force-wrap-aliases = true
+order-by-type = true
