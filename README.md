@@ -47,27 +47,6 @@ npx skills find "keyword"                        # search interactively
 npx skills add <owner>/<repo> -g -y              # every skill in a repo, user level
 npx skills add <owner>/<repo>@<skill-name> -g -y # one named skill
 npx skills add <owner>/<repo> -y                 # project level (the default)
-npx skills list                                  # show what is installed
-npx skills update                                # pull later versions
-npx skills remove <skill>                        # uninstall
-```
-
-The flags worth knowing: `-g` / `--global` installs to `~/.workbuddy/skills/` instead of the project, `-y` / `--yes` skips the confirmation prompt, `-s` / `--skill` picks skills by name, `-a` / `--agent` targets specific agents, `--copy` copies files where the default would symlink, and `--list` (`-l`) only prints what a repository offers without installing anything. Combination form: `npx skills add <owner>/<repo> --all` is shorthand for `--skill '*' --agent '*' -y`.
-
-Two limits apply to this route. It needs network access to GitHub — behind a firewall it stalls at `Cloning repository…` and eventually fails on port 443, which is a proxy problem rather than a skill problem — and it only installs packages that exist upstream on GitHub or in a marketplace. The skills in this repo are not published there, so for this repo the copy or link route above is the one that applies; `npx skills init <name>` is the useful part here, since it lays out a skeleton package you can then fill in.
-
-### From the marketplace
-
-Skills that are published to a marketplace are installed from the WorkBuddy UI, or through `npx skills add` as above, instead of by hand. This repo is not published, so the manual route is the one that applies to it.
-
-### Verify before you trust it
-
-Run the package's own check after installing. Every skill here is self-validating and offline:
-
-```bash
-python <installed skill>/scripts/sm_selftest.py    # Scoop skills
-python <installed skill>/scripts/verify.py .       # skill-draft
-python <installed skill>/scripts/check_style.py --list-rules  # project-tex
 ```
 
 ## Using a skill
@@ -240,17 +219,17 @@ It shares the architecture with `anchor-french` and differs mainly in the exam l
 
 ## Contents
 
-| Group               | Skill                                     | One line                                          |
-| :------------------ | :---------------------------------------- | :------------------------------------------------ |
-| Tooling             | [`skill-draft`](#skill-draft)             | Build a skill package and gate every file in it   |
-| Project conventions | [`project-py`](#project-py)               | Python: package manager, style, ruff + ty         |
-| Project conventions | [`project-tex`](#project-tex)             | LaTeX math: environments, brackets, notation      |
-| Project conventions | [`project-typ`](#project-typ)             | Typst lecture slides: assets, layout, compile     |
-| Language corners    | [`anchor-french`](#anchor-french)         | French conversation-circle host kit               |
-| Language corners    | [`anchor-spanish`](#anchor-spanish)       | Spanish conversation-circle host kit              |
-| Scoop buckets       | [`scoop-main-plus`](#scoop-main-plus)     | Manifests for the Main-Plus bucket                |
-| Scoop buckets       | [`scoop-extras-plus`](#scoop-extras-plus) | Manifests for the Extras-Plus bucket              |
-| Scoop buckets       | [`scoop-extras-cn`](#scoop-extras-cn)     | Manifests for the Extras-CN bucket                |
+| Group               | Skill                                     | One line                                        |
+| :------------------ | :---------------------------------------- | :---------------------------------------------- |
+| Tooling             | [`skill-draft`](#skill-draft)             | Build a skill package and gate every file in it |
+| Project conventions | [`project-py`](#project-py)               | Python: package manager, style, ruff + ty       |
+| Project conventions | [`project-tex`](#project-tex)             | LaTeX math: environments, brackets, notation    |
+| Project conventions | [`project-typ`](#project-typ)             | Typst lecture slides: assets, layout, compile   |
+| Language corners    | [`anchor-french`](#anchor-french)         | French conversation-circle host kit             |
+| Language corners    | [`anchor-spanish`](#anchor-spanish)       | Spanish conversation-circle host kit            |
+| Scoop buckets       | [`scoop-main-plus`](#scoop-main-plus)     | Manifests for the Main-Plus bucket              |
+| Scoop buckets       | [`scoop-extras-plus`](#scoop-extras-plus) | Manifests for the Extras-Plus bucket            |
+| Scoop buckets       | [`scoop-extras-cn`](#scoop-extras-cn)     | Manifests for the Extras-CN bucket              |
 
 ## Tooling
 
@@ -325,13 +304,13 @@ Two sibling skills that generate the host kit for a weekly conversation circle: 
 
 They are the same package ported to two languages, so they share a file layout (`scripts/corner_config.py`, `corner_skill.py`, `corner_audit.py`), the same three commands, and the same intake shape. What differs is the language itself, the exam ladder each one tags against, and the topic pool.
 
-|                     | `anchor-french`    | `anchor-spanish`   |
-| :------------------ | :----------------- | :----------------- |
-| Language            | French only        | Spanish only       |
-| Exam ladder         | DELF / DALF        | DELE               |
-| Level range         | B1–C2, plus mixed  | B1–C2, plus mixed  |
-| Output              | `docs/fr-<topic>.md` | `docs/es-<topic>.md` |
-| Config              | `assets/fr-corner-config.json` | `assets/es-corner-config.json` |
+|             | `anchor-french`                | `anchor-spanish`               |
+| :---------- | :----------------------------- | :----------------------------- |
+| Language    | French only                    | Spanish only                   |
+| Exam ladder | DELF / DALF                    | DELE                           |
+| Level range | B1–C2, plus mixed              | B1–C2, plus mixed              |
+| Output      | `docs/fr-<topic>.md`           | `docs/es-<topic>.md`           |
+| Config      | `assets/fr-corner-config.json` | `assets/es-corner-config.json` |
 
 **The config file is the only data source.** Grammar points, levels, scales, topic pool and dimensions, time allocation, vocabulary targets, the exam ladder and the output path template all live in the package's single JSON asset; `SKILL.md` describes the process, the style and the method and carries no option data of its own. Adding or removing an option means editing the JSON and nothing else.
 
@@ -339,10 +318,10 @@ They are the same package ported to two languages, so they share a file layout (
 
 **Three commands, all offline and standard-library only.** Run them from the package root:
 
-| Command                       | Job                                                            |
-| :---------------------------- | :------------------------------------------------------------- |
-| `python scripts/corner_config.py` | Load and validate the JSON, then print what it resolved     |
-| `python scripts/corner_skill.py`  | Drive the intake state machine and export the brief         |
+| Command                           | Job                                                              |
+| :-------------------------------- | :--------------------------------------------------------------- |
+| `python scripts/corner_config.py` | Load and validate the JSON, then print what it resolved          |
+| `python scripts/corner_skill.py`  | Drive the intake state machine and export the brief              |
 | `python scripts/corner_audit.py`  | Audit schema, identity, docs ↔ config, and cross-language purity |
 
 `corner_skill.py selftest` checks the recommendation pairings instead of starting an intake.

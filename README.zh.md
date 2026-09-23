@@ -47,27 +47,6 @@ npx skills find "关键词"                          # 交互式搜索
 npx skills add <owner>/<repo> -g -y              # 装仓库内全部 skill，用户级
 npx skills add <owner>/<repo>@<skill-name> -g -y # 只装指定的一个
 npx skills add <owner>/<repo> -y                 # 项目级（默认行为）
-npx skills list                                  # 查看已安装
-npx skills update                                # 更新到后续版本
-npx skills remove <skill>                        # 卸载
-```
-
-值得记住的参数：`-g` / `--global` 装到 `~/.workbuddy/skills/` 而不是项目内，`-y` / `--yes` 跳过确认，`-s` / `--skill` 按名字挑选，`-a` / `--agent` 指定目标 agent，`--copy` 在默认会建符号链接时改为复制文件，`--list`（`-l`）只列出仓库提供哪些 skill 而不安装。组合写法：`npx skills add <owner>/<repo> --all` 等价于 `--skill '*' --agent '*' -y`。
-
-这条路有两个限制。它需要能访问 GitHub——在防火墙后会在 `Cloning repository…` 处卡住并最终在 443 端口失败，这属于代理问题而非 skill 问题；而且它只能安装上游确实存在于 GitHub 或市场的包。本仓库的 skill 并未发布到那些地方，所以对本仓库而言适用的仍是上面的复制或链接路径；这里真正有用的是 `npx skills init <name>`，它可以生成一个骨架包供你填充。
-
-### 从市场安装
-
-发布到市场的 skill 通过 WorkBuddy 界面安装，或按上面的 `npx skills add` 安装，而不是手工放置。本仓库并未发布，所以对它适用的是手工路径。
-
-### 用之前先验证
-
-安装后跑一下包自带的自检。本仓库的每个 skill 都能离线自检：
-
-```bash
-python <installed skill>/scripts/sm_selftest.py    # Scoop 系 skill
-python <installed skill>/scripts/verify.py .       # skill-draft
-python <installed skill>/scripts/check_style.py --list-rules  # project-tex
 ```
 
 ## 调用 skill
@@ -240,17 +219,17 @@ extras-plus 里哪些包的版本和 URL 已经对不上了？
 
 ## 目录
 
-| 分组         | Skill                                     | 一句话                                            |
-| :----------- | :---------------------------------------- | :------------------------------------------------ |
-| 工具         | [`skill-draft`](#skill-draft)             | 构建 skill 包，并为其中每个文件设门禁             |
-| 项目规范     | [`project-py`](#project-py)               | Python：包管理器、代码风格、ruff + ty             |
-| 项目规范     | [`project-tex`](#project-tex)             | LaTeX 数学公式：环境、括号、记号                  |
-| 项目规范     | [`project-typ`](#project-typ)             | Typst 课件：资源、版式、编译                      |
-| 语言角       | [`anchor-french`](#anchor-french)         | 法语角主持资料包                                  |
-| 语言角       | [`anchor-spanish`](#anchor-spanish)       | 西班牙语角主持资料包                              |
-| Scoop bucket | [`scoop-main-plus`](#scoop-main-plus)     | Main-Plus bucket 的 manifest                      |
-| Scoop bucket | [`scoop-extras-plus`](#scoop-extras-plus) | Extras-Plus bucket 的 manifest                    |
-| Scoop bucket | [`scoop-extras-cn`](#scoop-extras-cn)     | Extras-CN bucket 的 manifest                      |
+| 分组         | Skill                                     | 一句话                                |
+| :----------- | :---------------------------------------- | :------------------------------------ |
+| 工具         | [`skill-draft`](#skill-draft)             | 构建 skill 包，并为其中每个文件设门禁 |
+| 项目规范     | [`project-py`](#project-py)               | Python：包管理器、代码风格、ruff + ty |
+| 项目规范     | [`project-tex`](#project-tex)             | LaTeX 数学公式：环境、括号、记号      |
+| 项目规范     | [`project-typ`](#project-typ)             | Typst 课件：资源、版式、编译          |
+| 语言角       | [`anchor-french`](#anchor-french)         | 法语角主持资料包                      |
+| 语言角       | [`anchor-spanish`](#anchor-spanish)       | 西班牙语角主持资料包                  |
+| Scoop bucket | [`scoop-main-plus`](#scoop-main-plus)     | Main-Plus bucket 的 manifest          |
+| Scoop bucket | [`scoop-extras-plus`](#scoop-extras-plus) | Extras-Plus bucket 的 manifest        |
+| Scoop bucket | [`scoop-extras-cn`](#scoop-extras-cn)     | Extras-CN bucket 的 manifest          |
 
 ## 工具
 
@@ -266,14 +245,14 @@ python <this skill dir>/scripts/verify.py <file-or-dir>...
 
 每种文件类型都走三段式流水线——内置检查、修复、复核——复核阶段必须退出码为零。当前覆盖范围：
 
-| 类型                       | 工具                                    |
-| :------------------------- | :-------------------------------------- |
-| `.py`                      | ruff + ty，外加进程内语法编译           |
-| `.md`                      | rumdl                                   |
-| `.json` / `.jsonc`         | 解析校验                                |
-| `.ts` / `.js` 系           | oxlint + oxfmt                          |
-| `.css` / `.scss` / `.less` | oxfmt                                   |
-| `.png`                     | oxipng + chunk/CRC 完整性复检           |
+| 类型                       | 工具                          |
+| :------------------------- | :---------------------------- |
+| `.py`                      | ruff + ty，外加进程内语法编译 |
+| `.md`                      | rumdl                         |
+| `.json` / `.jsonc`         | 解析校验                      |
+| `.ts` / `.js` 系           | oxlint + oxfmt                |
+| `.css` / `.scss` / `.less` | oxfmt                         |
+| `.png`                     | oxipng + chunk/CRC 完整性复检 |
 
 新增文件类型通常只需改 `scripts/file-types.json`，无需改代码；进程内检查写进 `scripts/checkers.py`。整个包只用 Python 标准库，因此任何机器上都能跑。
 
@@ -325,13 +304,13 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 
 它们是同一个包移植到两种语言，因此共用文件布局（`scripts/corner_config.py`、`corner_skill.py`、`corner_audit.py`）、同一组三条命令，以及同样的 intake 形态。不同的只是语言本身、各自标注的考试等级体系，以及话题库。
 
-|              | `anchor-french`      | `anchor-spanish`     |
-| :----------- | :------------------- | :------------------- |
-| 语言         | 仅法语               | 仅西班牙语           |
-| 考试等级     | DELF / DALF          | DELE                 |
-| 水平区间     | B1–C2，含混合        | B1–C2，含混合        |
-| 产出         | `docs/fr-<topic>.md` | `docs/es-<topic>.md` |
-| 配置         | `assets/fr-corner-config.json` | `assets/es-corner-config.json` |
+|          | `anchor-french`                | `anchor-spanish`               |
+| :------- | :----------------------------- | :----------------------------- |
+| 语言     | 仅法语                         | 仅西班牙语                     |
+| 考试等级 | DELF / DALF                    | DELE                           |
+| 水平区间 | B1–C2，含混合                  | B1–C2，含混合                  |
+| 产出     | `docs/fr-<topic>.md`           | `docs/es-<topic>.md`           |
+| 配置     | `assets/fr-corner-config.json` | `assets/es-corner-config.json` |
 
 **配置文件是唯一数据源。** 语法点、水平、规模、话题库与话题维度、时间分配、词汇量目标、考试等级体系、输出路径模板，全都存放在该包唯一的那份 JSON 资产里；`SKILL.md` 只描述流程、风格与方法论，自身不携带任何选项数据。增删选项意味着只改 JSON，不动其他任何文件。
 
@@ -339,11 +318,11 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 
 **三条命令，全部离线、全部只用标准库。** 在包根目录执行：
 
-| 命令                              | 职责                                        |
-| :-------------------------------- | :------------------------------------------ |
-| `python scripts/corner_config.py` | 加载并校验 JSON，然后打印解析结果           |
-| `python scripts/corner_skill.py`  | 驱动 intake 状态机并导出简报                |
-| `python scripts/corner_audit.py`  | 审计 schema、身份、文档 ↔ 配置、跨语言纯度   |
+| 命令                              | 职责                                       |
+| :-------------------------------- | :----------------------------------------- |
+| `python scripts/corner_config.py` | 加载并校验 JSON，然后打印解析结果          |
+| `python scripts/corner_skill.py`  | 驱动 intake 状态机并导出简报               |
+| `python scripts/corner_audit.py`  | 审计 schema、身份、文档 ↔ 配置、跨语言纯度 |
 
 `corner_skill.py selftest` 检查推荐配对，而不是启动一次 intake。
 
@@ -363,20 +342,20 @@ LaTeX 数学公式的内部风格。每条规则都是「不写 X，改写 Y」�
 
 它们只在各自目标仓库的强制要求下才产生差异。两个 extras 构建是同一个 skill 移植到两个 bucket，README 约定不同、主要包形态也不同；`scoop-extras-cn` 还额外地在自己 `SKILL.md` 里记录了它与 `scoop-extras-plus` 的分歧。
 
-|                 | `scoop-main-plus`          | `scoop-extras-plus`          | `scoop-extras-cn`          |
-| :-------------- | :------------------------- | :--------------------------- | :------------------------- |
-| 目标 bucket     | `$Scoop/buckets/main-plus` | `$Scoop/buckets/extras-plus` | `$Scoop/buckets/extras-cn` |
-| 配方数          | 18                         | 16                           | 16                         |
-| 规则数          | 23                         | 23                           | 23                         |
-| README 语言     | 英文                       | 英文                         | 中文                       |
+|             | `scoop-main-plus`          | `scoop-extras-plus`          | `scoop-extras-cn`          |
+| :---------- | :------------------------- | :--------------------------- | :------------------------- |
+| 目标 bucket | `$Scoop/buckets/main-plus` | `$Scoop/buckets/extras-plus` | `$Scoop/buckets/extras-cn` |
+| 配方数      | 18                         | 16                           | 16                         |
+| 规则数      | 23                         | 23                           | 23                         |
+| README 语言 | 英文                       | 英文                         | 中文                       |
 
 **共同形态。** 三者都对外暴露同样三条触发命令：
 
-| 命令       | 别名    | 职责                                             |
-| :--------- | :------ | :----------------------------------------------- |
-| `generate` | `gen`   | 按配方构建 manifest 并填好字段                   |
-| `update`   | `upd`   | 改字段、升版本、重算哈希、探测上游               |
-| `lint`     | `check` | 跑规则目录并修复格式                             |
+| 命令       | 别名    | 职责                               |
+| :--------- | :------ | :--------------------------------- |
+| `generate` | `gen`   | 按配方构建 manifest 并填好字段     |
+| `update`   | `upd`   | 改字段、升版本、重算哈希、探测上游 |
+| `lint`     | `check` | 跑规则目录并修复格式               |
 
 除 `--checkver`、`--fetch-hash` 与 `--rehash` 外全部离线。只用 Python 标准库，因此 Python 3.11+ 均可运行。脚本自行推导包根目录，可从任意工作目录执行。
 
