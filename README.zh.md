@@ -2,22 +2,71 @@
 
 [English](README.md)
 
-一组 [WorkBuddy](https://www.workbuddy.cn) Agent Skill 的集合。
+一组 我的日常 Agent Skill 的集合。
 
 每个 skill 都是一个自包含的包：一份由模型按需加载的 `SKILL.md`，外加 `scripts/`（确定性的代码）、`references/`（长文档，按需读取）和 `assets/`（模板与数据，永不进入上下文）。skill 的 frontmatter 里 `name` 必须等于其目录名，否则不会被加载。
 
-本仓库是唯一事实源。"已安装"的 skill 是 `~/.workbuddy/skills/` 下指向本仓库的 junction，因此编辑落在仓库里，版本控制才有意义。
+本仓库是主要工作副本。一个 skill 只要落在 WorkBuddy 会扫描的 skills 目录里，就对应用可用，而两个候选位置的作用范围不同：
+
+| 层级 | 路径 | 可用范围 |
+| :--- | :--- | :--- |
+| 用户级 | `~/.workbuddy/skills/<name>/` | 本机所有项目 |
+| 项目级 | `<project>/.workbuddy/skills/<name>/` | 仅该项目，且随项目一起分享给他人 |
+
+skill 的目录名必须与 frontmatter 里的 `name` 一致，否则不会被加载。
+
+## 安装 skill
+
+### 1. 把包放到应用会扫描的位置
+
+最简做法是复制——WorkBuddy 在每次启动时扫描目录树，因此单纯复制即可生效，无需其他步骤：
+
+```bash
+cp -r <skill> ~/.workbuddy/skills/<skill>            # 用户级，所有项目可用
+cp -r <skill> <project>/.workbuddy/skills/<skill>    # 项目级，仅该仓库可用
+```
+
+若想只保留一份可编辑的副本，用链接指向它而不是复制：
+
+```powershell
+# Windows：目录 junction 不需要管理员权限
+New-Item -ItemType Junction -Path "$env:USERPROFILE\.workbuddy\skills\<skill>" -Target "<repo>\<skill>"
+```
+
+```bash
+# macOS / Linux
+ln -s "<repo>/<skill>" ~/.workbuddy/skills/<skill>
+```
+
+### 2. 确认已加载
+
+重启或重新加载 WorkBuddy，然后问它有哪些 skill 可用；或者直接检查目录是否存在、其 `SKILL.md` 能否解析。frontmatter 必须以第一行的 `---` 开头，`name` 必须是小写 kebab-case 且等于文件夹名；两者不一致是 skill 不显示的最常见原因。
+
+注意复制体不会自动更新：改完包之后必须重新复制，或者改用链接，让编辑就地生效。
+
+### 3. 从市场安装
+
+发布到市场的 skill 通过 WorkBuddy 界面安装，而不是手工放置。本仓库并未发布，所以这里适用的是上面那条手工路径。
+
+### 4. 用之前先验证
+
+安装后跑一下包自带的自检。本仓库的每个 skill 都能离线自检：
+
+```bash
+python <installed skill>/scripts/sm_selftest.py    # Scoop 系 skill
+python <installed skill>/scripts/verify.py .       # skill-draft
+```
 
 ## 目录
 
-| 分组 | Skill | 一句话 |
-| :--- | :--- | :--- |
-| 工具 | [`skill-draft`](#skill-draft) | 构建 skill 包，并为其中每个文件设门禁 |
-| 项目规范 | [`project-py`](#project-py) | Python：包管理器、代码风格、ruff + ty |
-| 项目规范 | [`project-typ`](#project-typ) | Typst 课件：资源、版式、编译 |
-| Scoop bucket | [`scoop-main-plus`](#scoop-main-plus) | Main-Plus bucket 的 manifest |
-| Scoop bucket | [`scoop-extras-plus`](#scoop-extras-plus) | Extras-Plus bucket 的 manifest |
-| Scoop bucket | [`scoop-extras-cn`](#scoop-extras-cn) | Extras-CN bucket 的 manifest |
+| 分组         | Skill                                     | 一句话                                |
+| :----------- | :---------------------------------------- | :------------------------------------ |
+| 工具         | [`skill-draft`](#skill-draft)             | 构建 skill 包，并为其中每个文件设门禁 |
+| 项目规范     | [`project-py`](#project-py)               | Python：包管理器、代码风格、ruff + ty |
+| 项目规范     | [`project-typ`](#project-typ)             | Typst 课件：资源、版式、编译          |
+| Scoop bucket | [`scoop-main-plus`](#scoop-main-plus)     | Main-Plus bucket 的 manifest          |
+| Scoop bucket | [`scoop-extras-plus`](#scoop-extras-plus) | Extras-Plus bucket 的 manifest        |
+| Scoop bucket | [`scoop-extras-cn`](#scoop-extras-cn)     | Extras-CN bucket 的 manifest          |
 
 ## 工具
 
@@ -33,14 +82,14 @@ python <this skill dir>/scripts/verify.py <file-or-dir>...
 
 每种文件类型都走三段流水线——内建检查、修复、复核——且复核段必须退出零。当前覆盖：
 
-| 类型 | 工具 |
-| :--- | :--- |
-| `.py` | ruff + ty，外加进程内语法编译 |
-| `.md` | rumdl |
-| `.json` / `.jsonc` | 解析校验 |
-| `.ts` / `.js` 系 | oxlint + oxfmt |
-| `.css` / `.scss` / `.less` | oxfmt |
-| `.png` | oxipng + chunk/CRC 完整性复核 |
+| 类型                       | 工具                          |
+| :------------------------- | :---------------------------- |
+| `.py`                      | ruff + ty，外加进程内语法编译 |
+| `.md`                      | rumdl                         |
+| `.json` / `.jsonc`         | 解析校验                      |
+| `.ts` / `.js` 系           | oxlint + oxfmt                |
+| `.css` / `.scss` / `.less` | oxfmt                         |
+| `.png`                     | oxipng + chunk/CRC 完整性复核 |
 
 新增一种文件类型通常只需编辑 `scripts/file-types.json`，不必改代码；进程内检查放进 `scripts/checkers.py`。本包只依赖 Python 标准库，别无其他，因此在任何机器上都能跑。
 
@@ -79,20 +128,20 @@ python <this skill dir>/scripts/verify.py <file-or-dir>...
 
 它们只在各自目标仓库逼出来的地方不同。两个 extras 是把同一个 skill 移植到两个 bucket，README 约定不同、主导包型也不同；`scoop-extras-cn` 还在自己的 `SKILL.md` 里记录它与 `scoop-extras-plus` 的差异。
 
-| | `scoop-main-plus` | `scoop-extras-plus` | `scoop-extras-cn` |
-| :--- | :--- | :--- | :--- |
+|             | `scoop-main-plus`          | `scoop-extras-plus`          | `scoop-extras-cn`          |
+| :---------- | :------------------------- | :--------------------------- | :------------------------- |
 | 目标 bucket | `$Scoop/buckets/main-plus` | `$Scoop/buckets/extras-plus` | `$Scoop/buckets/extras-cn` |
-| recipe 数 | 18 | 16 | 16 |
-| lint 规则数 | 22 | 22 | 22 |
-| README 语言 | 英文 | 英文 | 中文 |
+| recipe 数   | 18                         | 16                           | 16                         |
+| lint 规则数 | 22                         | 22                           | 22                         |
+| README 语言 | 英文                       | 英文                         | 中文                       |
 
 **共同形态。** 三者暴露同样的三个触发命令：
 
-| 命令 | 别名 | 职责 |
-| :--- | :--- | :--- |
-| `generate` | `gen` | 从 recipe 生成 manifest 骨架并填好 |
-| `update` | `upd` | 改字段、升版本、重算 hash、探测上游 |
-| `lint` | `check` | 跑规则目录并修复格式 |
+| 命令       | 别名    | 职责                                |
+| :--------- | :------ | :---------------------------------- |
+| `generate` | `gen`   | 从 recipe 生成 manifest 骨架并填好  |
+| `update`   | `upd`   | 改字段、升版本、重算 hash、探测上游 |
+| `lint`     | `check` | 跑规则目录并修复格式                |
 
 除 `--checkver`、`--fetch-hash` 和 `--rehash` 之外，一切都在离线状态下运行。只依赖 Python 标准库，因此任何 Python 3.11+ 都可以。脚本自行推导包根，可从任意工作目录运行。
 

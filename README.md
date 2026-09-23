@@ -2,22 +2,71 @@
 
 [中文版](README.zh.md)
 
-A collection of [WorkBuddy](https://www.workbuddy.cn) Agent Skills.
+A collection of my daily Agent Skills.
 
 Each skill is a self-contained package: a `SKILL.md` that the model loads on demand, plus `scripts/` (deterministic code), `references/` (long specs, read only when needed) and `assets/` (templates and data that never enter context). A skill's `name` in its frontmatter must equal its directory name, or it will not load.
 
-This repo is the single source of truth. Skills that are "installed" are junctions under `~/.workbuddy/skills/` pointing back here, so edits land in the repo and version control stays meaningful.
+This repo is the main working copy. A skill becomes available to WorkBuddy once it sits in a skills directory the app scans, and the two candidate locations differ in scope:
+
+| Level | Path | Availability |
+| :--- | :--- | :--- |
+| User | `~/.workbuddy/skills/<name>/` | Every project on this machine |
+| Project | `<project>/.workbuddy/skills/<name>/` | That project only, and shared with anyone who gets the project |
+
+A skill's directory name and its frontmatter `name` must match, or it will not load.
+
+## Installing a skill
+
+### 1. Put the package where the app looks
+
+The simplest install is a copy — WorkBuddy scans the directory tree on each launch, so a plain copy works with no further steps:
+
+```bash
+cp -r <skill> ~/.workbuddy/skills/<skill>            # user level, all projects
+cp -r <skill> <project>/.workbuddy/skills/<skill>    # project level, that repo only
+```
+
+To keep one editable copy instead, link to it rather than copying:
+
+```powershell
+# Windows: a directory junction needs no administrator rights
+New-Item -ItemType Junction -Path "$env:USERPROFILE\.workbuddy\skills\<skill>" -Target "<repo>\<skill>"
+```
+
+```bash
+# macOS / Linux
+ln -s "<repo>/<skill>" ~/.workbuddy/skills/<skill>
+```
+
+### 2. Confirm it loaded
+
+Restart or reload WorkBuddy and ask what skills are available, or check that the directory is present and its `SKILL.md` parses. The frontmatter must open with `---` on the first line, and `name` must be lowercase kebab-case equal to the folder name; a mismatch is the usual reason a skill stays invisible.
+
+Note that a copy will not update itself: after editing the package you must re-copy, or use a link so the edit is picked up in place.
+
+### 3. From the marketplace
+
+Skills that are published to a marketplace are installed from the WorkBuddy UI instead of by hand. This repo is not published, so the manual route above is the one that applies here.
+
+### 4. Verify before you trust it
+
+Run the package's own check after installing. Every skill here is self-validating and offline:
+
+```bash
+python <installed skill>/scripts/sm_selftest.py    # Scoop skills
+python <installed skill>/scripts/verify.py .       # skill-draft
+```
 
 ## Contents
 
-| Group | Skill | One line |
-| :--- | :--- | :--- |
-| Tooling | [`skill-draft`](#skill-draft) | Build a skill package and gate every file in it |
-| Project conventions | [`project-py`](#project-py) | Python: package manager, style, ruff + ty |
-| Project conventions | [`project-typ`](#project-typ) | Typst lecture slides: assets, layout, compile |
-| Scoop buckets | [`scoop-main-plus`](#scoop-main-plus) | Manifests for the Main-Plus bucket |
-| Scoop buckets | [`scoop-extras-plus`](#scoop-extras-plus) | Manifests for the Extras-Plus bucket |
-| Scoop buckets | [`scoop-extras-cn`](#scoop-extras-cn) | Manifests for the Extras-CN bucket |
+| Group               | Skill                                     | One line                                        |
+| :------------------ | :---------------------------------------- | :---------------------------------------------- |
+| Tooling             | [`skill-draft`](#skill-draft)             | Build a skill package and gate every file in it |
+| Project conventions | [`project-py`](#project-py)               | Python: package manager, style, ruff + ty       |
+| Project conventions | [`project-typ`](#project-typ)             | Typst lecture slides: assets, layout, compile   |
+| Scoop buckets       | [`scoop-main-plus`](#scoop-main-plus)     | Manifests for the Main-Plus bucket              |
+| Scoop buckets       | [`scoop-extras-plus`](#scoop-extras-plus) | Manifests for the Extras-Plus bucket            |
+| Scoop buckets       | [`scoop-extras-cn`](#scoop-extras-cn)     | Manifests for the Extras-CN bucket              |
 
 ## Tooling
 
@@ -33,14 +82,14 @@ python <this skill dir>/scripts/verify.py <file-or-dir>...
 
 Every file type gets a three-stage pipeline — builtin check, repair, verify — and the verify stage must exit zero. Coverage today:
 
-| Type | Tools |
-| :--- | :--- |
-| `.py` | ruff + ty, plus in-process syntax compilation |
-| `.md` | rumdl |
-| `.json` / `.jsonc` | parse validation |
-| `.ts` / `.js` family | oxlint + oxfmt |
-| `.css` / `.scss` / `.less` | oxfmt |
-| `.png` | oxipng + a chunk/CRC integrity recheck |
+| Type                       | Tools                                         |
+| :------------------------- | :-------------------------------------------- |
+| `.py`                      | ruff + ty, plus in-process syntax compilation |
+| `.md`                      | rumdl                                         |
+| `.json` / `.jsonc`         | parse validation                              |
+| `.ts` / `.js` family       | oxlint + oxfmt                                |
+| `.css` / `.scss` / `.less` | oxfmt                                         |
+| `.png`                     | oxipng + a chunk/CRC integrity recheck        |
 
 Adding a file type normally means editing `scripts/file-types.json` only, with no code change; in-process checks go into `scripts/checkers.py`. The package uses the Python standard library and nothing else, so it runs on any machine.
 
@@ -79,20 +128,20 @@ Three sibling skills that turn "upstream shipped something new" or "upstream shi
 
 They differ only where their target repositories force them to. The extras builds are the same skill ported to two buckets with different README conventions and different dominant package shapes; `scoop-extras-cn` additionally documents its divergence from `scoop-extras-plus` in its own `SKILL.md`.
 
-| | `scoop-main-plus` | `scoop-extras-plus` | `scoop-extras-cn` |
-| :--- | :--- | :--- | :--- |
-| Target bucket | `$Scoop/buckets/main-plus` | `$Scoop/buckets/extras-plus` | `$Scoop/buckets/extras-cn` |
-| Recipes | 18 | 16 | 16 |
-| Lint rules | 22 | 22 | 22 |
-| README language | English | English | Chinese |
+|                 | `scoop-main-plus`          | `scoop-extras-plus`          | `scoop-extras-cn`          |
+| :-------------- | :------------------------- | :--------------------------- | :------------------------- |
+| Target bucket   | `$Scoop/buckets/main-plus` | `$Scoop/buckets/extras-plus` | `$Scoop/buckets/extras-cn` |
+| Recipes         | 18                         | 16                           | 16                         |
+| Lint rules      | 22                         | 22                           | 22                         |
+| README language | English                    | English                      | Chinese                    |
 
 **Common shape of each.** All three expose the same three trigger commands:
 
-| Command | Alias | Job |
-| :--- | :--- | :--- |
-| `generate` | `gen` | Build a manifest from a recipe and fill it in |
-| `update` | `upd` | Edit fields, bump the version, recompute hashes, probe upstream |
-| `lint` | `check` | Run the rule catalog and repair formatting |
+| Command    | Alias   | Job                                                             |
+| :--------- | :------ | :-------------------------------------------------------------- |
+| `generate` | `gen`   | Build a manifest from a recipe and fill it in                   |
+| `update`   | `upd`   | Edit fields, bump the version, recompute hashes, probe upstream |
+| `lint`     | `check` | Run the rule catalog and repair formatting                      |
 
 Everything runs offline except `--checkver`, `--fetch-hash` and `--rehash`. Python standard library only, so any Python 3.11+ works. The scripts derive the package root themselves and run from any working directory.
 
