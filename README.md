@@ -1,6 +1,6 @@
 # skills
 
-[中文版](README.zh.md)
+[Chinese](README.zh.md)
 
 A collection of my daily Agent Skills.
 
@@ -75,7 +75,7 @@ The third one is the extension path: adding a file type normally means editing `
 
 ### project-py
 
-Triggers: *Python, py, ruff, ty, lint, 类型检查, 包管理, micromamba, uv, matplotlib, subplots.*
+Triggers: *Python, py, ruff, ty, lint, micromamba, uv, matplotlib, subplots, plus the Chinese terms for type checking and package management.*
 
 ```text
 Add error bars to these plots and clean up the figure code.
@@ -93,25 +93,25 @@ The second is worth noting: this skill will not install anything until it has as
 
 ### project-tex
 
-Triggers: *LaTeX, latex, tex, 公式, 数学公式, 矩阵, 行列式, 方程组, 分段函数, begin, aligned, bmatrix, vmatrix, mathrm, atop.*
+Triggers: *LaTeX, latex, tex, begin, aligned, bmatrix, vmatrix, mathrm, atop, plus the Chinese terms for formula, matrix, determinant, equation system and piecewise function.*
 
 ```text
-把这段推导整理成多行公式，按语义挑环境。
+Reformat this LaTeX derivation as a multi-line formula, picking the environment by meaning.
 ```
 
 ```text
-写一下这个分段函数，再配一个矩阵。
+Write up this piecewise function in LaTeX, with a matrix to go with it.
 ```
 
 ```text
-这段公式检查一下写法。
+Check the LaTeX in this formula.
 ```
 
 The third is the mechanical half: it runs `python <this skill dir>/scripts/check_style.py <file>`, which is report-only and exits 0 when clean. The script knows Markdown as well as `.tex` — it finds math inside `$…$`, `$$…$$`, `\(…\)`, `\[…\]` and `latex`-fenced blocks, so a lecture note gets the same audit as a source file.
 
 ### project-typ
 
-Triggers: *Typst, typ, 讲义, 课件, 幻灯片, touying, qooklet, .typ, figure, tableq, read().*
+Triggers: *Typst, typ, touying, qooklet, .typ, figure, tableq, read(), plus the Chinese terms for lecture notes and slides.*
 
 ```text
 Add a section on histogram equalisation to the image processing deck.
@@ -165,54 +165,54 @@ The second is a read-only question the lint rules answer directly (`W104`), whic
 
 ### scoop-extras-cn
 
-Triggers: the same set plus *scoop-extras-cn* and the Chinese forms *生成 manifest, 更新 manifest, 检查 manifest.*
+Triggers: the same set plus *scoop-extras-cn*; the generate, update and lint manifest commands are also matched in Chinese.
 
 ```text
-给 extras-cn 加一个新包，中文名是「飞书」。
+Add a new package to extras-cn and put its Chinese display name in the README.
 ```
 
 ```text
-检查一下 extras-cn 的 README 总结表，哪些包没列进去？
+Check extras-cn's README summary table — which packages are missing from it?
 ```
 
 ```text
-把 extras-cn 里所有包检查一遍，并把格式问题修掉。
+Lint every package in extras-cn and fix the formatting problems.
 ```
 
-The first exercises the four-column README and the `中文名称` cell that this bucket alone has; the second reaches `W105`, whose hint names the exact spelling it found, which is what makes the display-name-versus-manifest-name mismatch diagnosable without reading the README by hand.
+The first exercises the four-column README and the Chinese display-name column that this bucket alone has; the second reaches `W105`, whose hint names the exact spelling it found, which is what makes the display-name-versus-manifest-name mismatch diagnosable without reading the README by hand.
 
 ### anchor-french
 
-Triggers: *法语角, French corner, 主持法语角, 法语口语, 法语讨论, 法语话题, 法语会话.*
+Triggers: *French corner, plus the Chinese phrases for the French corner, hosting it, spoken French, French discussion, French topics and French conversation.*
 
 ```text
-下周的法语角帮我准备一下，练条件式。
+Prepare next week's French corner — we are practising the conditional.
 ```
 
 ```text
-主持法语角，话题随机一个。
+Host a French corner with a random topic.
 ```
 
 ```text
-这周法语角是「环保」，参与者水平混合。
+This week's French corner is on the environment; the group is mixed level.
 ```
 
-The intake is the point here, not the wording: it asks about the grammar point, the level and the group size before writing anything, and it will not invent a grammar point for you. The first prompt supplies one and skips that question; the second exercises the `🎲 随机` topic source; the third jumps past the level question by naming a level outright.
+The intake is the point here, not the wording: it asks about the grammar point, the level and the group size before writing anything, and it will not invent a grammar point for you. The first prompt supplies one and skips that question; the second exercises the random-topic source; the third jumps past the level question by naming a level outright.
 
 ### anchor-spanish
 
-Triggers: *西班牙语角, 西语角, Spanish corner, 主持西语角, 西班牙语口语, 西班牙语讨论, 西班牙语话题, 西班牙语会话.*
+Triggers: *Spanish corner, plus the Chinese phrases for the Spanish corner, hosting it, spoken Spanish, Spanish discussion, Spanish topics and Spanish conversation.*
 
 ```text
-帮我准备这周的西语角，练虚拟式。
+Help me prepare this week's Spanish corner — we are practising the subjunctive.
 ```
 
 ```text
-主持西语角，话题随机一个。
+Host a Spanish corner with a random topic.
 ```
 
 ```text
-西语角话题是「家庭与朋友」，B2，8 个人。
+The Spanish corner topic is family and friends, B2, eight people.
 ```
 
 It shares the architecture with `anchor-french` and differs mainly in the exam ladder — DELE here, DELF/DALF there — and in its own topic pool. The third prompt answers every question in one line, which is the case the intake is documented to skip.
@@ -389,9 +389,9 @@ Manifests for the **Extras-CN** bucket (88 manifests, Chinese-facing). Same reci
 
 What makes this one distinct:
 
-- **Bilingual descriptions.** 57 of 88 manifests use Chinese, so rules that enforce English phrasing stand down for any string containing CJK — and the trailing-period check with them, since a Chinese sentence legitimately ends with `。`.
-- **A four-column README** (`中文名称` before `App`) with CJK cells padded to display width, split across `跨平台` / `Win 专属` / `开源镜像`, plus a two-column plain-text mirror table.
-- **A rule that was dead code elsewhere.** The README check was gated on the literal English heading `## ⭐️ Summary`, which this repo spells `## ⭐️ 总结`, so it never fired. Re-gated on "the README has summary tables", it surfaced 35 findings that split cleanly into 17 stable-convention entries and 18 genuine README gaps — a good illustration of why a check nobody can pass is worse than no check.
+- **Bilingual descriptions.** 57 of 88 manifests use Chinese, so rules that enforce English phrasing stand down for any string containing CJK — and the trailing-period check with them, since a Chinese sentence legitimately ends with a full-width full stop.
+- **A four-column README** (a Chinese display-name column before `App`) with CJK cells padded to display width, split across a cross-platform group, a Windows-only group and an open-source-mirror group, plus a two-column plain-text mirror table.
+- **A rule that was dead code elsewhere.** The README check was gated on the literal English heading `## ⭐️ Summary`, which this repo spells with a Chinese heading, so it never fired. Re-gated on "the README has summary tables", it surfaced 35 findings that split cleanly into 17 stable-convention entries and 18 genuine README gaps — a good illustration of why a check nobody can pass is worse than no check.
 
 Two upstream rule fixes were carried into this build because they are latent bugs rather than repo-specific choices: the `jsonpath` / `xpath` regex requirement, and a recursive-delete pattern that was over-escaped and could never match.
 
