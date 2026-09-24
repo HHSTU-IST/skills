@@ -2,7 +2,8 @@
 """skill-draft gate engine: read the sibling file-types.json, group by suffix, fix and re-verify.
 
 Usage: python verify.py [--list] <file-or-dir>...
-Exit codes: 0 = all clean; 1 = residual problems; 2 = the gate itself or the rules table failed.
+Exit codes: 0 = no residual problems after auto-fix; 1 = residual problems;
+2 = the gate itself or the rules table failed.
 """
 
 from __future__ import annotations
@@ -470,7 +471,7 @@ def main(argv: Sequence[str]) -> int:
     if residual:
         print(f"Gate failed: {len(residual)} to fix")
         return 1
-    print(f"Gate passed: all {len(files)} files clean")
+    print(f"Gate passed: all {len(files)} files clean (after the gate's auto-fixes)")
     return 0
 
 

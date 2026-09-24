@@ -1,6 +1,5 @@
 [global]
 line-length = 120
-
 disable = ["MD013", "MD025", "MD029", "MD033"]
 
 [MD013]

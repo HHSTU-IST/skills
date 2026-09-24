@@ -49,7 +49,7 @@ Globally installed at
 repo's `skills/scoop-extras-plus`, so the repo stays the single source of truth.
 Every example below is relative to the package root.
 
-## 1. Hard constraints
+## Hard constraints
 
 - **Output**: `$env:Scoop/buckets/extras-plus/bucket/<app>.json`, optionally plus
   a README summary row in the same repo. Never write to `bin/`, `scripts/` or
@@ -73,7 +73,7 @@ Every example below is relative to the package root.
   explanation. Centering already matches this repo's 5 tables byte for byte, so
   inserting a row never disturbs the others.
 
-## 2. The three trigger commands
+## The three trigger commands
 
 | Command | Alias | Job | Main options |
 | :--- | :--- | :--- | :--- |
@@ -86,7 +86,7 @@ script takes `$env:Scoop/buckets/extras-plus` whenever that is a bucket repo, an
 otherwise walks up from the cwd looking for a directory holding both `bucket/`
 and `README.md`.
 
-## 3. generate
+## generate
 
 **Settle five things first** and ask the user for anything missing; do not guess:
 
@@ -127,7 +127,7 @@ command prints that hint).
 **Rhythm**: `--dry-run` to preview, then drop it to write and sync the README,
 then `lint --name <app>` to confirm.
 
-## 4. update
+## update
 
 `--set` takes a dotted path and parses the value as JSON, falling back to a
 string. New fields land in their canonical key position (`persist` goes between
@@ -159,7 +159,7 @@ is passed, which syncs it and keeps the existing note column (for example
 `by @CronusLM`); `--readme` only fires when something else in the manifest
 changed (see section 7).
 
-## 5. lint
+## lint
 
 ```bash
 python scripts/scoop_manifest.py lint                  # full run, about 1 second
@@ -207,7 +207,7 @@ Line endings are still among them, by one file: `isobuster` is written with LF
 of problem across the whole working tree, which is also where the `.rumdl_cache/`
 files are reported -- those are the linter's own cache, not the bucket's.
 
-## 6. Boundaries
+## Boundaries
 
 Not for: installers that need interaction, MSI customisation, or packages with
 private unpacking logic beyond `$PLUGINSDIR` (hand-writing is easier); archives
@@ -215,7 +215,7 @@ over 2GB (aria2 and hash verification degrade); **32bit architecture** — `arch
 takes `64bit` and `arm64` only, so `url32` / `hash32` are neither accepted nor
 emitted; and any change under `bin/`, `scripts/` or `.github/`.
 
-## 7. Gotchas
+## Gotchas
 
 One entry per thing the bucket, its CI or the tooling has surprised us with. Add
 a line as soon as a new one shows up -- this is where the density is.
@@ -358,7 +358,7 @@ a line as soon as a new one shows up -- this is where the density is.
   Action: read the failure as news about the bucket rather than a broken skill;
   the package groups (catalog, docs, name) are the ones judging the package.
 
-## 8. Maintenance
+## Maintenance
 
 ```bash
 python scripts/sm_selftest.py            # full self-check (offline)

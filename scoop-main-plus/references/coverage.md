@@ -10,7 +10,7 @@ gaps?".
 Sections 1-2 are the method and the two corpora, 3-8 the survey, 9 the mapping,
 10 the gaps, 11 the re-run recipe.
 
-## 1. Method
+## Method
 
 Two corpora, both read offline:
 
@@ -32,7 +32,7 @@ once per trait. Rows that count URLs instead say so.
 Measured 2026-09-20. Upstream moves, so the absolute numbers are a snapshot and
 the proportions are the durable part. Section 11 has the re-run recipe.
 
-## 2. Two buckets, two shapes
+## Two buckets, two shapes
 
 The two upstream buckets are not variations on a theme; they are opposites in
 the one place that matters most, namely how a package reaches the user.
@@ -60,7 +60,7 @@ with `github-cli-archive`, and why `shortcut_exe` stopped being a required
 parameter of `github-nsis-7z`, `github-innosetup` and `github-single-exe` -- in
 this repo it would have been wrong more often than right.
 
-## 3. Corpus shape
+## Corpus shape
 
 The four required fields are on all 1653 files by definition. Everything else:
 
@@ -97,7 +97,7 @@ Four figures matter for maintenance:
 - **`license` is an object on 127 files** (`{"identifier": ..., "url": ...}`) and
   a plain string on 1526. Both forms are first class in `param_docs`.
 
-## 4. checkver shapes
+## checkver shapes
 
 The shape is `json`-normalised: `str:` means the value is a bare string,
 `{a,b}` means an object with exactly those keys.
@@ -148,7 +148,7 @@ carry most of this bucket. The bare-regex shorthand is still used 47 times: Scoo
 reads a bare string as a regex run against `$json.homepage`, which is why
 `webpage-regex` works without `checkver_url`.
 
-## 5. autoupdate shapes
+## autoupdate shapes
 
 | Shape                        | Files | Shape                             | Files |
 | :--------------------------- | ----: | :-------------------------------- | ----: |
@@ -168,7 +168,7 @@ minimal: `{url}` on 1823 branches, `{extract_dir,url}` on 286, `{hash,url}` on
 `checkver` is GitHub-first: the two halves are built from the same release asset
 list.
 
-## 6. Architecture combinations
+## Architecture combinations
 
 | Combination                 | Main | Extras |
 | :-------------------------- | ---: | -----: |
@@ -194,7 +194,7 @@ Two consequences for the builders:
   worth modelling, at 414 files (360 in Extras), and it is never the only
   architecture in practice.
 
-## 7. Download shapes
+## Download shapes
 
 Counted **per URL**, not per file, across every `url` / `url64` / `url32` /
 `url_arm64` at any nesting depth -- **6340** URLs in total:
@@ -235,7 +235,7 @@ way round) because their `autoupdate` template disagrees with the checked-in URL
 `typst-ts` in this repo is one of them: `url` ends in `.zip`, `autoupdate.url` in
 `.tar.gz`. Scoop copes, but the mismatch is a latent surprise.
 
-## 8. Install mechanics
+## Install mechanics
 
 This is the section the catalog actually turns on.
 
@@ -273,7 +273,7 @@ repo -- it demands `bin_exe` (so you have to say what goes on PATH) and rejects
 for `github-portable-zip` when the shortcut, the `extract_dir` or the
 environment variables are the point.
 
-## 9. Recipe to upstream pattern
+## Recipe to upstream pattern
 
 "Population" is the number of upstream files whose shape that recipe is built
 for; a file is quoted under the shape it fits best, so the column is not a
@@ -320,7 +320,7 @@ this repo where a manifest of that shape exists there (11 of 18 recipes), and
 `ScoopInstaller/Extras` ones the previous edition of the catalog carried, so a
 sample can now be opened next to the recipe and read.
 
-## 10. Not covered
+## Not covered
 
 Known gaps, in rough order of how likely they are to bite:
 
@@ -348,7 +348,7 @@ Known gaps, in rough order of how likely they are to bite:
   `{regex,script,url}` and `{github,jsonpath,regex,script}` appear once each.
   Left to hand-writing by design.
 
-## 11. Refreshing the survey
+## Refreshing the survey
 
 The survey script is deliberately **not** shipped: it is a one-off analysis, and
 keeping it in the package would make it look like a supported tool. To redo it,

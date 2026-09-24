@@ -26,7 +26,7 @@ a tone.
 
 ## Steps
 
-### 1. Fix the identity
+### Fix the identity
 
 Settle these with the user; none of them is optional.
 
@@ -49,7 +49,7 @@ allowed set, and `skill-frontmatter` in the gate fails on any other key. A
 `title` gets read as the document title and demotes the body's H1; `version`
 and `tags` and display-name keys only drift out of date.
 
-### 2. Fix the skeleton
+### Fix the skeleton
 
 ```text
 <name>/
@@ -69,7 +69,7 @@ against the directory name), a round-trip over real data, and a comparison
 against an external baseline or rule table. The gate in step 4 checks the
 files; this checks the package.
 
-### 3. Write the files
+### Write the files
 
 Write steps imperatively (verb first), one completion criterion per step,
 and push long specs down into `references/`. Scripts inside the package may
@@ -82,7 +82,7 @@ Refer to this skill itself with the `<this skill dir>` placeholder, and to
 the home directory with `~` or `Path.home()`. The gate's `no-local-paths`
 check backstops this.
 
-### 4. Pass the gate
+### Pass the gate
 
 One command runs everything:
 
@@ -114,7 +114,7 @@ Residual problems come in two kinds.
 Rerun the gate after fixing, until the exit code is 0. Exit code 2 means
 the gate or the rules table itself is broken.
 
-### 5. Actually run it
+### Actually run it
 
 The package's entry script must be executed once for real, against a
 minimal sample. Static checks cannot catch runtime problems.
@@ -123,7 +123,7 @@ minimal sample. Static checks cannot catch runtime problems.
 python <skill>/scripts/<entry>.py <minimal-sample>
 ```
 
-### 6. Report
+### Report
 
 Give one table with "file / residual problems / gate exit code". Write 0
 when there are no residual problems. For compression results, include the

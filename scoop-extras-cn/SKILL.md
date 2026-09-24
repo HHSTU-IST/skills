@@ -57,7 +57,7 @@ Globally installed at
 repo's `skills/scoop-extras-cn`, so the repo stays the single source of truth.
 Every example below is relative to the package root.
 
-## 1. Hard constraints
+## Hard constraints
 
 - **Output**: `$env:Scoop/buckets/extras-cn/bucket/<app>.json` by default,
   optionally plus a README summary row in the same repo.
@@ -86,7 +86,7 @@ Every example below is relative to the package root.
   section 7, and the names **this** repo uses are in
   `references/manifest-fields.md` section 8.
 
-## 2. The three trigger commands
+## The three trigger commands
 
 | Command | Alias | Job |
 | :--- | :--- | :--- |
@@ -98,7 +98,7 @@ All three share the recipe catalog and the rule engine. Shared option
 `--repo <bucket repo root>` overrides the target. Every flag of every
 command, with the invocations: `references/cli.md`.
 
-## 3. generate
+## generate
 
 **Settle five things first** and ask the user for anything missing; do not
 guess:
@@ -140,7 +140,7 @@ python scripts/scoop_manifest.py gen --name myapp --recipe github-nsis-7z \
 `--from` batches a spec file instead of one app per invocation; the variants
 are in `references/cli.md`.
 
-## 4. update
+## update
 
 `--set` takes a dotted path and parses the value as JSON, falling back to a
 string. New fields land in their canonical key position (`persist` goes
@@ -164,7 +164,7 @@ Safety net: the rule engine runs after every change and error-level findings
 example `by @CronusLM`). The remaining invocation shapes are in
 `references/cli.md`.
 
-## 5. lint
+## lint
 
 ```bash
 python scripts/scoop_manifest.py lint --name douyin    # a single app
@@ -185,7 +185,7 @@ Rules and their fixes live in `references/lint-rules.md`; the remaining
 flags (`--json`, `--strict`, `--rules`) and the full run are in
 `references/cli.md`.
 
-## 6. Boundaries
+## Boundaries
 
 Not for: installers that need interaction, MSI customisation, or packages with
 private unpacking logic beyond `$PLUGINSDIR` (hand-writing is easier); archives
@@ -193,7 +193,7 @@ over 2GB (aria2 and hash verification degrade); **32bit architecture** — `arch
 takes `64bit` and `arm64` only, so `url32` / `hash32` are neither accepted nor
 emitted; and any change under `bin/`, `scripts/` or `.github/`.
 
-## 7. Gotchas
+## Gotchas
 
 Twenty-one so far, one per thing this bucket, its CI or the tooling has pulled
 on us. **The entries themselves are in `references/gotchas.md`**, written as
@@ -222,7 +222,7 @@ hand-fixing a manifest, and add a line there the moment a new one shows up.
 - **`checkver.script` is PowerShell, and it hides two traps.**
 - **Upstream can repack the same version, silently invalidating the hash.**
 
-## 8. Maintenance
+## Maintenance
 
 ```bash
 python scripts/sm_selftest.py            # full self-check (offline)

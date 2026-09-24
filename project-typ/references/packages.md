@@ -55,7 +55,7 @@ table-no-left-right(stroke-color)
 #code(text, lang: "python", breakable: true, width: 100%)
 ```
 
-### 0.7.0 的配置模型（与旧版差异大，注意）
+### 的配置模型（与旧版差异大，注意）
 
 `src/config/styles.toml` 结构：
 

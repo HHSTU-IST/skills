@@ -51,7 +51,7 @@ python scripts/sm_selftest.py
 Pure standard library, and the repo's Python target is 3.14; nothing in the
 scripts is version-gated, so an older 3.x still runs them.
 
-## 1. Hard constraints
+## Hard constraints
 
 - **Output**: `<repo>/bucket/<app>.json`, optionally plus a README summary row.
   Never write to `bin/`, `scripts/` or `.github/` -- those belong to Scoop's
@@ -75,7 +75,7 @@ scripts is version-gated, so an older 3.x still runs them.
   columns `App / Language / Auto-Update ?`. A missing section skips the sync with
   an explanation, and a column the skill does not recognise is never touched.
 
-## 2. The three trigger commands
+## The three trigger commands
 
 | Command | Alias | Job | Main options |
 | :--- | :--- | :--- | :--- |
@@ -88,7 +88,7 @@ the cwd looking for a directory holding both `bucket/` and `README.md`, and
 falls back to `$Scoop/buckets/main-plus` when there is none -- so a copy that is
 installed elsewhere still writes into this bucket.
 
-## 3. generate
+## generate
 
 **Settle six things first** and ask the user for anything missing; do not guess:
 
@@ -140,7 +140,7 @@ command prints that hint).
 **Rhythm**: `--dry-run` to preview, then drop it to write and sync the README,
 then `lint --name <app>` to confirm.
 
-## 4. update
+## update
 
 `--set` takes a dotted path and parses the value as JSON, falling back to a
 string. New fields land in their canonical key position (`persist` goes between
@@ -172,7 +172,7 @@ Safety net: the rule engine runs after every change and error-level findings
 `--print-json` dumps the result. `upd` leaves the README alone unless `--readme`
 is passed, which syncs the row and keeps every cell it does not own.
 
-## 5. lint
+## lint
 
 ```bash
 python scripts/scoop_manifest.py lint                  # full run, about a second
@@ -210,14 +210,14 @@ Line endings are no longer among them: `typst-ts` was the only file written with
 LF, and it has since been normalised. `W112` watches that class of problem
 across the whole working tree instead of leaving it to a per-manifest rule.
 
-## 6. Boundaries
+## Boundaries
 
 Not for: installers that need interaction, MSI customisation, or packages with
 private unpacking logic beyond `$PLUGINSDIR` (hand-writing is easier); archives
 over 2GB (aria2 and hash verification degrade); `.jar` launchers, which need a
 hand-written `.cmd` shim; and any change under `bin/`, `scripts/` or `.github/`.
 
-## 7. Gotchas
+## Gotchas
 
 One entry per thing the bucket, its CI or the tooling has surprised us with. Add
 a line as soon as a new one shows up -- this is where the density is.
@@ -315,7 +315,7 @@ a line as soon as a new one shows up -- this is where the density is.
   instead of the tag -- `/download/v([\d.]+)/<asset>\\.exe` picks the newest
   release that actually ships the file.
 
-## 8. Maintenance
+## Maintenance
 
 ```bash
 python scripts/sm_selftest.py            # full self-check (offline)

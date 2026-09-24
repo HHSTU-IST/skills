@@ -198,7 +198,7 @@ $ <bellman>
 
 ## 排雷清单（踩过的坑）
 
-### 1. 幽灵逗号
+### 幽灵逗号
 
 内容块 `[...]` 内的**可见逗号**会被解析成参数分隔符：
 
@@ -209,29 +209,29 @@ $ <bellman>
 #note[第一句，第二句。]
 ```
 
-### 2. 双反引号 raw
+### 双反引号 raw
 
 `` `` ` `` `` 这种双反引号 raw 极易造成定界符错配，**吞掉后续整段文本和标题**。
 需要展示反引号时用单反引号或纯文字描述。
 
-### 3. raw 围栏必须配对
+### raw 围栏必须配对
 
 ``` 与 ```` 嵌套要成对，否则级联破坏整个文件的解析。
 在 Typst 里演示 Markdown 代码块时，内层用 `` ```text `` 而不是 `` ```markdown ``（避免 `**` 被染色）。
 
-### 4. 超高 slide 被自动拆页
+### 超高 slide 被自动拆页
 
 Touying 检测到内容超过一页会**自动拆成两页**，留下半页空白。
 解法：精简内容、拆成多个 `===`，或者改成分栏版式（`columns()` + `#colbreak()`）。
 **不要再靠 `block(height: …)` 把内容硬压进一页** —— 固定高度只是把溢出的部分藏起来。
 （唯一的正当用法是分栏块里带有序列表，见「控制单页容量」。）
 
-### 5. 路径基准是仓库根
+### 路径基准是仓库根
 
 `read()` / `image()` / `csv()` 的路径都相对**仓库根**，不相对当前 `.typ`。
 deck 在根目录，所以看起来像相对路径；但如果把 `.typ` 移进子目录就会全部断链。
 
-### 6. 编译必须带字体路径
+### 编译必须带字体路径
 
 ```bash
 typst compile --font-path "C:/Windows/Fonts" v01-环境搭建.typ
@@ -239,7 +239,7 @@ typst compile --font-path "C:/Windows/Fonts" v01-环境搭建.typ
 
 否则中文缺字（显示为空白或豆腐块）。`code/slide_qa.py` 已经把 `--font-path` 内置了。
 
-### 7. 本机 shell 工具注意
+### 本机 shell 工具注意
 
 - `find` / `grep` 是 scoop shim 版（BusyBox），行为与 GNU 不同：
   `grep` **不支持 `--include`**，`find -name` 报参数格式错误。
@@ -248,7 +248,7 @@ typst compile --font-path "C:/Windows/Fonts" v01-环境搭建.typ
   `UnicodeDecodeError` 并**静默返回 "(no diff)"**（假阴性）。
   → 用 Python `difflib` + 编码回退（`utf-8-sig` → `utf-8` → `gbk` → `latin-1`）。
 
-### 8. 导出的 PNG 序列
+### 导出的 PNG 序列
 
 `typst compile` 要导出多页图时必须带页码模板：
 

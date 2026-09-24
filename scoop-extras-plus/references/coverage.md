@@ -10,7 +10,7 @@ and "is it one of the known gaps?".
 Sections 1-6 are the survey, 7 is the mapping, 8 the gaps, 9 the rejected ideas
 and 10 the re-run recipe.
 
-## 1. Method
+## Method
 
 - Corpus: `$env:Scoop/buckets/extras/bucket` — the upstream
   `ScoopInstaller/Extras` bucket, **2389** `*.json` manifests, against the 56 in
@@ -23,7 +23,7 @@ and 10 the re-run recipe.
 - Measured 2026-09-19. Upstream moves, so the absolute numbers are a snapshot and
   the proportions are the durable part. Section 9 has the re-run recipe.
 
-## 2. Corpus shape
+## Corpus shape
 
 The four required fields are on all 2389 files by definition. Everything else:
 
@@ -54,7 +54,7 @@ Three figures matter for maintenance:
 - `pre_install` (612) outnumbers `post_install` (227) by almost three to one, so
   preparation before extraction is far more common than cleanup after it.
 
-## 3. checkver shapes
+## checkver shapes
 
 The shape is `json`-normalised: `str:` means the value is a bare string,
 `{a,b}` means an object with exactly those keys.
@@ -113,7 +113,7 @@ Per-modifier totals, which the recipes accept as optional parameters:
 GitHub is 57% of the corpus, which is why six of the sixteen recipes are
 GitHub-specific and why the non-GitHub ones lean on `url` + `regex`.
 
-## 4. autoupdate shapes
+## autoupdate shapes
 
 | Shape                                                                                                                |  Files |
 | :------------------------------------------------------------------------------------------------------------------- | -----: |
@@ -137,7 +137,7 @@ The single defect worth naming: **148 manifests carry `architecture` but give
 leaves the per-architecture ones pinned. This is rule `W103`; the same defect
 appears on 4 manifests in this repo.
 
-## 5. Architecture combinations
+## Architecture combinations
 
 | Combination                                      | Files |
 | :----------------------------------------------- | ----: |
@@ -163,7 +163,7 @@ one entry each in `ARCH_PARAM` / `ARCH_HASH_PARAM` in `sm_lib.py`, the matching
 `--url32` / `--hash32` flags in `scoop_manifest.py`, and the `param_docs` /
 recipe lists in `recipes.jsonc`.
 
-## 6. Download shapes
+## Download shapes
 
 Counted **per URL**, not per file, across every `url` / `url64` / `url32` /
 `url_arm64` at any nesting depth — **7853** URLs in total:
@@ -206,7 +206,7 @@ manifests declare it.
 `$PLUGINSDIR`, is the evidence behind `github-nsis-7z`: it is not an edge case,
 it is the default shape of every Electron release.
 
-## 7. Recipe to upstream pattern
+## Recipe to upstream pattern
 
 "Population" is the number of upstream files whose shape that recipe is built
 for. Where a recipe sits across two shapes the larger one is quoted.
@@ -250,7 +250,7 @@ Sample manifests per recipe are listed in `recipes.md` under **Samples**. The
 nine original recipes cite files from this repo; the seven added for upstream
 coverage cite upstream files, because this repo has no manifest of those shapes.
 
-## 8. Not covered
+## Not covered
 
 Known gaps, in rough order of how likely they are to bite:
 
@@ -283,7 +283,7 @@ Known gaps, in rough order of how likely they are to bite:
   and section 4's last row is five one-off autoupdate shapes. Left to
   hand-writing by design.
 
-## 9. Ideas that were measured and rejected
+## Ideas that were measured and rejected
 
 Two plausible rules were checked against upstream and deliberately **not**
 implemented. They are recorded because the next person to look will have the
@@ -306,7 +306,7 @@ same idea, and a wrong rule is worse than no rule.
   **URLs only** and leaves `extract_dir` alone — `--set extract_dir=...` when
   upstream really did rename the directory.
 
-## 10. Refreshing the survey
+## Refreshing the survey
 
 The survey script is deliberately **not** shipped: it is a one-off analysis, and
 keeping it in the package would make it look like a supported tool. To redo it,

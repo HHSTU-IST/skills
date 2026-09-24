@@ -66,7 +66,11 @@ def json_parse(path: Path) -> list[str]:
 
 
 def skill_frontmatter(path: Path) -> list[str]:
-    """Check the frontmatter has name == directory name, a description, and no extra keys."""
+    """Check the frontmatter has name == directory name, a description, and no extra keys.
+
+    Length is deliberately not gated: how long a description should be follows from how
+    many trigger branches it needs, so a hard limit would only force useful branches out.
+    """
     if path.name != "SKILL.md":
         return []
     source, problems = _read_text(path)
@@ -184,6 +188,10 @@ def _home_needles() -> tuple[str, ...]:
 
 def no_local_paths(path: Path) -> list[str]:
     """A skill package must not carry this machine's absolute paths: elsewhere that text is wrong.
+
+    Only this machine's home directory is a needle. A platform-standard location such
+    as `C:/Windows/Fonts` is deliberately out of scope: it is the same on every machine
+    of that platform, so it is a portability question, not a stale local path.
 
     Binary files are skipped silently; portability is not their concern, so a decode
     failure is not counted as a problem.

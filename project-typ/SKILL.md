@@ -17,11 +17,11 @@ agent_created: true
 
 两者的资源规则完全一致：**一切外部内容都放在仓库根的对应目录里，用相对路径引入，绝不内联进 `.typ`。**
 
-## 1. 六条硬规则
+## 六条硬规则
 
 第 1 条管**动手前先查什么**；第 2–4 条管**资源怎么放、怎么引**；第 5 条管**文字怎么改**；第 6 条管**结果怎么汇报**。
 
-### 1.1 自定义函数：先查包，再动手
+### 自定义函数：先查包，再动手
 
 **在写任何 `#let my-helper(...) = ...` 之前，必须先检索 qooklet 与 touying-quick 是否已经有实现。**
 绝大多数排版需求（表格、代码块、提示框、公式编号、图表引用）这两个包都已经解决，重复造轮子会导致
@@ -43,7 +43,7 @@ agent_created: true
 > 课件里通过 `lib/lib.typ` 引入，deck 场景生效的是 touying-quick 版本，无需关心来源。
 > 但 `ctext()` 更推荐直接写 `ctext("色泽")`（数学模式里用 CJK 的惯用写法）。
 
-### 1.2 代码：存文件，用 `read()` 取回
+### 代码：存文件，用 `read()` 取回
 
 写代码示例时，**不要把代码内联在 `.typ` 里**。先把代码落成真实文件，再用 `read()` 引入。
 
@@ -84,7 +84,7 @@ agent_created: true
 
 代码量较大时（超过约 20 行）改用两栏版式，左栏放代码、右栏放结果图；模板直接照抄 §2.1。
 
-### 1.3 图片：存 `images/`，`figure` 包 `image`
+### 图片：存 `images/`，`figure` 包 `image`
 
 ```typst
 #figure(
@@ -104,7 +104,7 @@ agent_created: true
   重新生成或新增大量 PNG 后可以再压一遍：`python code/oxipng_images.py --days 7`（干跑），
   加 `--apply` 落盘（会先备份到 `.tmp/backup-images-oxipng/`，压完逐张比像素）。
 
-### 1.4 数据：存 `data/`，优先 CSV
+### 数据：存 `data/`，优先 CSV
 
 ```typst
 #let data = csv("data/algo-expr.csv")
@@ -124,7 +124,7 @@ agent_created: true
 
 > 仓库根有 `.gitignore`，`images/` 与 `output/` 不入库；数据文件在 `data/` 下正常纳入版本管理。
 
-### 1.5 文字：不要切分长句
+### 文字：不要切分长句
 
 **不要把长句拆成短句。** 保持原有的句子结构与表达节奏，一个完整语义就是一个句子。
 
@@ -140,7 +140,7 @@ agent_created: true
 - 涉及代码时同理：只改代码本身需要的部分，不顺手重排注释与文档字符串的句读。
 - 需要断句时用**逗号、顿号或分号**维持单句，而不是用句号拆成多句。
 
-### 1.6 结果：编译后不要展示 PDF
+### 结果：编译后不要展示 PDF
 
 **编译只是为了验证能否通过，不要用 `present_files` 把产出的 PDF 推给用户，也不要在回复里附图。**
 用户在自己的 IDE / 阅读器里看稿，助手弹出 PDF 只会打断工作流。
@@ -150,7 +150,7 @@ agent_created: true
 - 需要用户确认版式时，描述清楚问题所在（页码 + 现象），让用户自己打开看，而不是把文件塞过去。
 - 同理，`typst compile` 导出的 PNG 序列也只作为 `slide_qa.py` 的中间产物，不单独展示。
 
-## 2. deck 骨架（照抄）
+## deck 骨架（照抄）
 
 ```typst
 #import "lib/lib.typ": *
@@ -174,7 +174,7 @@ agent_created: true
 - 分栏页用 `#columns()[...]`：摘掉外壳（高度 auto）的块**栏与栏之间必须加 `#colbreak()`**；
   保留 `#block(height: …)` 外壳的块则**一个都不加**，分栏交给块高，见下节。
 
-### 2.1 分栏块：裸 `columns()` + `#colbreak()`；块内有有序列表的例外
+### 分栏块：裸 `columns()` + `#colbreak()`；块内有有序列表的例外
 
 分栏块默认写成这样（2026-09-24 起；旧的 `#block(height: ..., columns()[…])` 由下面的脚本全数摘掉外层）。
 **唯一的例外是块里带有序列表（`+` / `1.`）—— 这类块保留外壳不摘（2026-09-25 补），见下**：
@@ -235,7 +235,7 @@ agent_created: true
 `references/syntax.md` 的「控制单页容量」节。两条判据这里也照用：**块内有 `+` / `1.` 有序列表的一律跳过**；
 不给 `--splits` 时，**没有 `#colbreak()` 的块一律跳过**（固定高度是它唯一的分栏依据，摘壳会整块塌进第一栏）。
 
-## 3. 编译与校验
+## 编译与校验
 
 ```bash
 # 编译（Windows 必须带字体路径，否则中文缺字）
@@ -253,7 +253,7 @@ python code/check_example_fit.py --margin 60      # 只列余量 < 60pt 的
 python code/asset_check.py
 ```
 
-## 4. 格式化：typstyle
+## 格式化：typstyle
 
 **改完 `.typ` 要跑 typstyle。** 命令：`typstyle --check .`（只读）、`typstyle --diff <f>`（只读预览）、
 `typstyle -i <f>`（落盘）。
@@ -273,7 +273,7 @@ p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
 - 默认会**按字母重排 import 项目**；需保持原顺序时加 `--no-reorder-import-items`。
 - 格式化是**渲染中性**的：本仓库 54 个可编译文件格式化前后渲染 PDF 内容逐字节一致。
 
-## 5. 检查清单
+## 检查清单
 
 生成或修改 `.typ` 后逐条核对：
 
@@ -290,7 +290,7 @@ p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
 - [ ] 用 `--font-path "C:/Windows/Fonts"` 编译通过，且 `code/slide_qa.py` 无超容告警
 - [ ] **没有**用 `present_files` 展示编译产出的 PDF / PNG
 
-## 6. 踩坑点
+## 踩坑点
 
 都是版式、工具与仓库的实际行为，不是偏好。信息密度最高的部分就在这里，发现一个加一个，
 写成「现象 → 原因 → 对策」。
@@ -341,11 +341,11 @@ p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
   原因：Typst 默认字体集不含中文字体。
   对策：`typst compile --font-path "C:/Windows/Fonts" <file>.typ`。
 
-## 7. 参考文件
+## 参考文件
 
 - `references/packages.md` —— qooklet / touying-quick / theorion 的完整导出符号与配置项
 - `references/syntax.md` —— 高频 Typst 写法、单页容量控制与排雷清单
 
-## 8. 篇幅说明
+## 篇幅说明
 
 本文档 351 行 / 估算 ~5.9k token，仍超「5000 token / 500 行」的软门槛。**不拆的理由：剩下的每一节都在写 `.typ` 的当下被读到，拆出去等于每次多开一个文件。**六条硬规则是动笔前的分流依据；§2 的骨架与 §2.1 的分栏块模板每页都要套；§3 的命令与 §5 的检查清单是「做完」的判据；§6 的九条踩坑点动版面时几乎必然命中。查表与一次性的部分已经下沉（§1.1 的包清单、§1.2 的两栏示例、§1.4 的 xlsx 示例、§2.1 的迁移脚本），各节留了指针。**再增内容时优先下沉到 `references/`，不要抬高这一节记下的水位。**

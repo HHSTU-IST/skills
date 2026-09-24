@@ -13,7 +13,7 @@ agent_created: true
 
 本文档**只描述流程、风格与方法论**，不含任何可选项数据——语法点、水平、规模、话题维度、时间分配、词汇量、DELE 等级等一律以 `assets/es-corner-config.json` 为准。增删选项只改 JSON，无需改动本文件。
 
-## 1. 定位与硬约束
+## 定位与硬约束
 
 - **形式定位（最重要）**：**平等参与的圆桌讨论**。所有参与者地位相同，**不含任何辅导 / 教学环节、无分组讨论、不布置作业**。主持人以「参与者之一」的身份引导话题与节奏，不讲解语法、不做一对一纠正、不充当教师。
 - **语言范围**：**仅西班牙语**。本技能包只加载 `assets/es-corner-config.json`，不含法语数据与逻辑；法语角请用独立技能包 `anchor-french`。
@@ -21,7 +21,7 @@ agent_created: true
 - **水平范围**：B1–C2（含「混合（B1–C2）」），不出现 A1 / A2。
 - **产出物**：单页 Markdown 主持脚本，路径模板见 `style.output_path_template`（`docs/es-{topic}.md`）。
 
-## 2. 技能包结构与运行
+## 技能包结构与运行
 
 本包是**自包含技能包**（skill-creator 标准结构）：脚本、参考文档、数据资产齐备，只服务西班牙语，可整体复制到 `~/.workbuddy/skills/` 使用。标准布局、各文件的职责边界、运行时管线（谁解析、谁收集、谁产出）与顶层字段的消费方，都在 `references/corner-architecture.md`（§0 / §1.6，本包实例取值见 §5）；本节只留跑得起来的那部分。
 
@@ -35,7 +35,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 `corner_audit.py` 是唯一的机械闸门，四段依次跑、任一段失败即非零退出：schema 引用 → 包身份 →
 本文件 ↔ 配置取值 → 内容纯度。
 
-## 3. 交互契约（intake）
+## 交互契约（intake）
 
 用 **AskUserQuestion** 收集；编排由 `question_plan` 驱动，**逐题询问（一问一答）**。若用户在消息里已给全，可跳过对应题。
 
@@ -54,13 +54,13 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 - **不要替用户脑补语法点**；Q1 未答则 Q2 不展开。
 - **话题三种来源（Q4 逐题询问）**：① 从 `topic_pool` 题库勾选；② 选「🎲 随机选一个」，由 `random_topics()` 从题库抽取；③ 直接输入自定义话题（`allow_custom`）。用户若在消息里已给话题，以其为准，不再追问。
 
-## 4. 工作流
+## 工作流
 
-### 4.1 读取简报
+### 读取简报
 
 先读**当前工作目录**下的 `es-corner-brief.md`（文件名见 `meta.brief_filename`，由 `scripts/corner_skill.py` 的 `export_brief()` 落盘），从中取得水平、一 / 二级语法点、话题、规模、词汇量目标、阶段名、POS 分组、DELE 标注规则与 rubric。**简报已确定的参数不再询问**。
 
-### 4.2 生成主持词（纯西文；30 题穿插其中）
+### 生成主持词（纯西文；30 题穿插其中）
 
 输出为**一页可朗读的主持脚本**：问题不单列成块，而是穿插在主持词中、由引出语自然带出。
 
@@ -73,7 +73,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
   - 三部分按话题相似度聚类、内部递进（个人化 → 展开 → 辩论），难度随题号递增。
 - **结语（Cierre）**：复述要点（西文）→ 预告下次（**无作业**）。
 
-### 4.3 30 题生成规则（DELE 标注 · 按话题聚类 · 递进）
+### 30 题生成规则（DELE 标注 · 按话题聚类 · 递进）
 
 围绕话题与语法点，**先按话题相似度聚成 3 个部分**（按话题的子主题拆；如旅行 → 「过往经历 / 理想旅行 / 旅行与社会」）。**每个部分内部保持递进**：个人化、易开口 → 开放式展开 → 观点 / 辩论，难度随题号递增。
 
@@ -89,27 +89,27 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 - Parte 2（话题 B，递进 DELE B1→DELE C1）
 - Parte 3（话题 C，递进 DELE B1→DELE C2）
 
-### 4.4 生成生词表（按词性 · 西文释义）
+### 生成生词表（按词性 · 西文释义）
 
 分组取自 `style.pos_groups`：Sustantivos / Verbos / Adjetivos / Adverbios / Preposiciones·Conjunciones / Pronombres / Otros。
 
 每组：`palabra → definición en español → ejemplo en español`（不使用中文；词性分类名也用西文）。优先覆盖话题与语法所需高频词，总量按简报中的 `vocab_targets` 区间控制。
 
-### 4.5 产出与呈现
+### 产出与呈现
 
 - 写入**单个 Markdown 文件**，路径按 `style.output_path_template`（`docs/es-{topic}.md`，`{topic}` 为西文话题名，如 旅行 → `docs/es-viaje.md`）；目录不存在则创建；若不在该仓库工作，写到当前工作区 `./docs/`。
 - 固定生成「环节时间分配」表（数值取自 `time_allocation`，见附录 A.5）。
 - 写入后**尝试执行 `rumdl fmt <文件路径>`** 格式化；若 `rumdl` 不可用或报错，静默跳过（不阻断产出）。
 - 用 **present_files** 打开预览，并附一句简要说明。
 
-## 5. 风格约定
+## 风格约定
 
 - **纯西文（无中文・无英文）**：主持词正文、问题、生词释义、例句，以及所有标题、结构化标签（Apertura / Rompehielos / Tema / Discusión / Cierre）与词性分类名一律用西文书写。可保留 `(DELE B1)`、`(DELE C1)` 这类等级标注（属西文专有名词）。
 - **不使用水平分割线 `---`**（`style.no_hr`）：区块之间用标题层级与空行分隔。
 - **用标题代替整行加粗**（`style.no_full_line_bold`）：元信息 / 小节标题使用 `##` / `###`，禁止用整行 `**加粗**` 充当标题（避免 rumdl MD036 告警）。
 - 难度贴合所选水平；例句尽量贴近话题场景；问题明确标注 DELE 等级。
 
-## 6. 踩坑点
+## 踩坑点
 
 都是这套包与它自己闸门的实际行为，不是偏好。发现一个加一个，写成「现象 → 原因 → 对策」。
 
@@ -163,7 +163,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 > 以下为方法论：话题生成、30 题框架、句型复杂度、规模备注；题型骨架表已下沉到 `references/corner-architecture.md`（§6）。
 > 所有**可选项数据**以 `assets/es-corner-config.json` 为准，由 `scripts/corner_config.py` 加载；增删选项只改 JSON。
 
-### A.1 话题生成方法（适用于任何语法点）
+### 话题生成方法（适用于任何语法点）
 
 不限定具体话题。选定语法点后，按「三个通用生活维度」生成 2–4 个候选话题，保证任意语法点都能落地。
 
@@ -173,7 +173,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 
 > 三个通用生活维度（个人经历 / 日常、愿望 / 假设、社会 / 比较 / 观点）及其示例已外置为 `topic_dimensions`（label + desc），供话题生成时参考；Q4 的备选题库则来自 `topic_pool`。
 
-### A.2 30 题生成框架（3 部分递进，适用于任何话题）
+### 30 题生成框架（3 部分递进，适用于任何话题）
 
 先按「话题相似度」把 30 题聚成 3 个部分（每部分 10 题）。若用户给了 1 个话题，可用「个人 → 展开 → 社会 / 观点」三维度拆分；若给了 2 个话题，可各占部分或合并。
 
@@ -189,13 +189,13 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 - 逐题过渡：*Por turnos, responded:* / *Y tú, ¿qué opinas?*
 - 递进示例：*Habla de {S} según tu experiencia.* → *¿Qué te marcó de {S}?* → *¿Deberíamos cambiar nuestra relación con {S}?*
 
-### A.3 按语法点的题型骨架（通用，可替换话题）
+### 按语法点的题型骨架（通用，可替换话题）
 
 每条语法点 3 档难度骨架的完整表格（把 {S} 换成本次话题，再打上对应等级标签）在
 `references/corner-architecture.md`（§6）—— 一次生成只查其中几条，留在正文里
 占的篇幅不划算。
 
-### A.4 词汇量与句型复杂度（B1–C2）
+### 词汇量与句型复杂度（B1–C2）
 
 词汇量区间以 `vocab_targets` 为准（当前：B1 25–35 / B2 28–40 / C1·C2 40–55 / 混合 25–55 词）。各水平句型复杂度：
 
@@ -204,7 +204,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 - C1 / C2：抽象论证、语体转换
 - 混合：分档标注
 
-### A.5 环节时间分配与规模备注（固定 90 分钟）
+### 环节时间分配与规模备注（固定 90 分钟）
 
 数值以 `time_allocation` 为准（解析器会校验：分钟合计须等于 `scales.minutes`，pct 合计须 ≈ 1.0）：
 

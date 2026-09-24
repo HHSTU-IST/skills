@@ -10,7 +10,7 @@ agent_created: true
 
 > 适用范围：`.py` 源码。**不处理 `.ipynb`**。
 
-## 1. 包管理器：先问，再动手（硬规则）
+## 包管理器：先问，再动手（硬规则）
 
 **严禁使用 `pip` 装包或卸包 —— 包在本机不存在时也不行。** 「这个包哪个环境都没有」
 从来不是放宽这条规则的理由：缺依赖时的正确反应是**报告并停下**，不是去 `pip`。
@@ -47,7 +47,7 @@ micromamba run -n <env> python -c "import sys; print(sys.prefix)"   # 该环境�
 需要时现场用 `command -v` / `env list` / `sys.prefix` / `--version` 解析；
 `ty.toml` 里也**不要**写死解释器路径。
 
-## 2. 运行脚本：先探测环境，再让用户选（硬规则）
+## 运行脚本：先探测环境，再让用户选（硬规则）
 
 **要执行的 `.py` 只要 import 越出标准库，就不许自己挑个解释器直接跑。**
 顺序固定为判定 → 探测 → 询问 → 执行，四步缺一不可。
@@ -94,7 +94,7 @@ micromamba run -n <选定的环境> python <脚本>
 同一会话里已选定的环境可以沿用，不必每次重问；一旦换了脚本、换了依赖集，
 或者用户说了「换个环境」，就重新走一遍上面四步。
 
-## 3. 代码风格（写 Python 时必须遵守）
+## 代码风格（写 Python 时必须遵守）
 
 ### 基础
 
@@ -163,7 +163,7 @@ ax.spines["bottom"].set_visible(False)
 
 > `zip()` 记得显式写 `strict=`（ruff 会要求），避免引入新告警。
 
-## 4. 静态检查：ruff + ty（**改完必须先格式化**）
+## 静态检查：ruff + ty（**改完必须先格式化**）
 
 **顺序固定：① `ruff format` → ② `ruff check` → ③ `ty check`。**
 格式化和 lint 是两个不同的动作，`check` 不会替你排版；**改完代码不跑 format 就算没做完**。
@@ -203,7 +203,7 @@ micromamba run -n <选定的环境> ty check code python
 工具自己会咬人的那几处 —— `ruff check` 默认落盘、`ty` 裸跑刷假警报、子目录
 `pyproject.toml` 覆盖根规则集 —— 见第 6 节。
 
-## 5. Markdown 文档检查：rumdl（**改完本技能自身的 .md 后必跑**）
+## Markdown 文档检查：rumdl（**改完本技能自身的 .md 后必跑**）
 
 本技能是 Markdown 交付物，改动 `SKILL.md` 或 `references/*.md` 后必须用系统环境里的
 `rumdl` 检查并修复。
@@ -244,7 +244,7 @@ rumdl check skills/project-py/
 - **不要在仓库根新建 `rumdl.toml` 来放宽规则** —— 那会影响其他人的文档；
   局部豁免请用行内 `<!-- rumdl-disable... -->`。
 
-## 6. 踩坑点
+## 踩坑点
 
 都是工具的实际行为，不是偏好。发现一个加一个，写成「现象 → 原因 → 对策」。
 
@@ -280,7 +280,7 @@ rumdl check skills/project-py/
   原因：路径在换机或升级后失效，`ty` 不降级，而是报错退出。
   对策：照第 1 节，路径运行时解析，不写死。
 
-## 7. 检查清单
+## 检查清单
 
 改完代码后按此顺序执行，**不得跳过格式化那一步**。
 

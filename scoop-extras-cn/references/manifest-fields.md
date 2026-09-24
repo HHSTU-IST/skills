@@ -11,7 +11,7 @@ This repo targets Chinese users, so several conventions differ from the
 English-language buckets. Those differences are called out inline and
 summarised in section 8.
 
-## 1. File-level conventions
+## File-level conventions
 
 | Item          | Convention                                              | Basis                                                                    |
 | :------------ | :------------------------------------------------------ | :----------------------------------------------------------------------- |
@@ -27,9 +27,9 @@ file currently trips W109. The one file-name deviation is `mpv.net-cm.json`:
 its stem contains a `.`, which `^[a-z0-9][a-z0-9-]*$` rejects (E009). Renaming
 it would be a breaking change for existing users, so it is left as is.
 
-## 2. Top-level fields
+## Top-level fields
 
-### 2.1 Required fields (CI fails when missing)
+### Required fields (CI fails when missing)
 
 | Field         | Type             | Notes                                                                                                 | Sample in this repo                                             |
 | :------------ | :--------------- | :---------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------- |
@@ -40,7 +40,7 @@ it would be a breaking change for existing users, so it is left as is.
 | `checkver`    | string or object | How the version is detected, see section 3                                                            | 86/88 (not `edrawmax8`, `mpv.net-cm`)                           |
 | `autoupdate`  | object           | How URLs change on a version bump, see section 4                                                      | 86/88                                                           |
 
-### 2.2 Download and install fields
+### Download and install fields
 
 | Field                              | Type               | Notes                                                                                                                                | Sample in this repo                                |
 | :--------------------------------- | :----------------- | :----------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------- |
@@ -55,7 +55,7 @@ it would be a breaking change for existing users, so it is left as is.
 | `pre_install` / `post_install`     | string or string[] | Hooks before and after install                                                                                                       | `miniforge-cn` (both)                               |
 | `pre_uninstall` / `post_uninstall` | string or string[] | Hooks before and after uninstall                                                                                                     | `clash-mi`                                          |
 
-### 2.3 Integration fields
+### Integration fields
 
 | Field          | Type                       | Notes                                                                                                          | Sample in this repo                          |
 | :------------- | :------------------------- | :------------------------------------------------------------------------------------------------------------- | :------------------------------------------- |
@@ -71,7 +71,7 @@ it would be a breaking change for existing users, so it is left as is.
 | `##`           | string                     | **The documented way to leave a comment inside a manifest.** Scoop ignores it; use it instead of `_comment`    | none here; 54 upstream manifests             |
 | `##`           | string                     | **The documented way to leave a comment inside a manifest.** Scoop ignores it; use it instead of `_comment`    | none here; 54 upstream manifests             |
 
-### 2.4 The `#/` fragment in URLs
+### The `#/` fragment in URLs
 
 The trailing `#/name` in a URL decides the file name on disk and
 **therefore which way Scoop processes the download**:
@@ -91,7 +91,7 @@ is the whole point of the convention: without the underscore an `.msi` download
 is silently unpacked with `Expand-MsiArchive` instead of reaching your
 `installer.script`.
 
-## 3. checkver forms
+## checkver forms
 
 | Form          | Structure                                            | Use when                                                      | Sample in this repo                      |
 | :------------ | :--------------------------------------------------- | :------------------------------------------------------------ | :--------------------------------------- |
@@ -133,7 +133,7 @@ Key points:
 - The `script` form needs a Scoop environment, so this skill's `update --checkver`
   cannot probe it offline and says so explicitly.
 
-## 4. Writing autoupdate
+## Writing autoupdate
 
 `autoupdate` describes what the URL looks like once the version is `$version`.
 
@@ -154,7 +154,7 @@ Key points:
    and the package goes stale forever. `yuque`, `wegame` and `quarkclouddrive`
    are live examples here.
 
-## 5. Canonical key order
+## Canonical key order
 
 Field order produced by `gen` (`CANONICAL_ORDER` in `sm_lib.py`):
 
@@ -186,7 +186,7 @@ accepted nor generated, and `32bit` is not a valid `arch` value.
 fields keep their position and only new fields are inserted in the order
 above. Pass `--reorder` to rewrite everything.
 
-## 6. When not to use this skill
+## When not to use this skill
 
 - PowerShell build outputs, MSI customisation, or private unpacking logic
   beyond `$PLUGINSDIR` -- writing the manifest by hand is easier.
@@ -196,14 +196,14 @@ above. Pass `--reorder` to rewrite everything.
   own helper module, imported by 3 manifests; a new app may import it, but the
   skill does not generate or edit it.
 
-## 7. Related files
+## Related files
 
 - Which recipe applies, and what it emits: `references/recipes.md`
 - Where the recipes came from, and what is not covered: `references/coverage.md`
 - Lint rules: `references/lint-rules.md`
 - Recipe data (single source of truth): `assets/recipes.jsonc`
 
-## 8. How this repo differs from the English-language buckets
+## How this repo differs from the English-language buckets
 
 | Area | Extras-CN | Why it matters when writing a manifest |
 | :--- | :--- | :--- |
