@@ -135,7 +135,7 @@ minimal: `{url}` on 1880 branches, `{hash,url}` on 185, `{extract_dir,url}` on
 The single defect worth naming: **148 manifests carry `architecture` but give
 `autoupdate` only a flat `url`**, so Excavator refreshes one URL and silently
 leaves the per-architecture ones pinned. This is rule `W103`; the same defect
-appears on 7 manifests in this repo.
+appears on 4 manifests in this repo.
 
 ## 5. Architecture combinations
 

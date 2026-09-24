@@ -156,7 +156,8 @@ Safety net: the rule engine runs after every change and error-level findings
 **block the write** (`--force` overrides); `--dry-run` previews and
 `--print-json` dumps the result. `upd` leaves the README alone unless `--readme`
 is passed, which syncs it and keeps the existing note column (for example
-`by @CronusLM`).
+`by @CronusLM`); `--readme` only fires when something else in the manifest
+changed (see section 7).
 
 ## 5. lint
 
@@ -173,11 +174,11 @@ python scripts/scoop_manifest.py lint --rules          # print the rule catalog
 never JSON semantics.
 
 Line endings are checked repo-wide, not just per manifest: a full `lint` also
-walks the working tree -- skipping `.git/` and the tool caches -- and reports
-every text file that is not CRLF, which is what `.editorconfig` demands for
-`[*]`. That pass is read-only and reaches into directories this skill does not
-own; `--fix-format` normalises only `bucket/*.json` and `README.md`. The traps
-inside that pass are in section 7.
+walks the working tree -- skipping `.git/` only, so `.rumdl_cache/` shows up
+too -- and reports every text file that is not CRLF, which is what
+`.editorconfig` demands for `[*]`. That pass is read-only and reaches into
+directories this skill does not own; `--fix-format` normalises only
+`bucket/*.json` and `README.md`. The traps inside that pass are in section 7.
 
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.
@@ -188,16 +189,23 @@ found so far:
 
 | manifest | Issue | Rule |
 | :--- | :--- | :--- |
-| `cumora` | `version` says 0.18.4 but the URL and autoupdate both pin `v0.1.64` with no `$version`, so it installs an old build forever | W104 + W110 |
+| `cumora` | `version` says 0.18.7 but the URL and autoupdate both pin `v0.1.64` with no `$version`, so it installs an old build forever | W104 + W110 |
 | `voov-meeting` | `hash` written as `md5:03fd...`, a prefix Scoop does not accept | E011 |
-| 7 manifests | `architecture` exists but `autoupdate` has only a flat url, so Excavator never refreshes the per-architecture URLs | W103 |
-| `aionui` / `ecopaste` | the README summary table spells them `aionaui` / `ecopast` | W105 |
+| 4 manifests | `architecture` exists but `autoupdate` has only a flat url, so Excavator never refreshes the per-architecture URLs: `bitcomet`, `comfyui-manager`, `hermes-one`, `mineru` | W103 |
+| 8 manifests | no README summary row at all: `comfyui`, `comfyui-manager`, `cumora`, `dingtalk-en`, `dorion`, `genoffice`, `hermes-one`, `isobuster` | W105 |
 | `affinity` | `description` ends with a period (Scoop wants a phrase) | W101 |
 
-Line endings are no longer among them: `isobuster` used to be the one file
-written with LF, and it has since been normalised. W112 watches that class of
-problem across the whole working tree, instead of leaving it to a per-manifest
-rule.
+Fixed 2026-09-25 and gone from the list: the README spelled `aionui`,
+`ecopaste` and `bananas` as `aionaui`, `ecopast` and `p2p-kiwi` (W105), and `wake`
+had no row at all; `notegen`, `open-design` and `defender-remover` got real
+hashes plus per-architecture `autoupdate` (their W103 is gone, 7 -> 4), and
+`zlibrary` stopped scraping the dead `1lib.sk` page -- it now dates its version
+from the CDN build it actually downloads.
+
+Line endings are still among them, by one file: `isobuster` is written with LF
+(0 CRLF against 23 LF, W109) and has not been normalised. W112 watches that class
+of problem across the whole working tree, which is also where the `.rumdl_cache/`
+files are reported -- those are the linter's own cache, not the bucket's.
 
 ## 6. Boundaries
 
@@ -250,6 +258,98 @@ a line as soon as a new one shows up -- this is where the density is.
   Cause: the script form needs a live Scoop environment, which the command does
   not have.
   Action: run `bin/checkver.ps1` instead.
+- **A `{"script": ...}` checkver still downloads `checkver.url` first.**
+  Symptom: the script is never reached -- Excavator reports the download error
+  (`The SSL connection could not be established`, `URL <homepage> is not valid`)
+  even though the script reads a completely different URL.
+  Cause: `bin/checkver.ps1` fetches `checkver.url`, falling back to `homepage`
+  under its "Not Specified" branch, and `continue`s on a transport error
+  *before* `Invoke-Command` runs the script. A dead homepage therefore sinks a
+  script checkver that never uses it (`zlibrary`, whose only reachable upstream
+  host is the CDN).
+  Action: add a `url` that answers 200 and is cheap -- the script overwrites
+  `$page`, so the body is discarded (`https://s3proxy.cdn-zlib.sk/`, 615 bytes).
+  Then probe it with `bin/checkver.ps1`: without that fetch step the script is a
+  no-op and the symptom looks like a script bug.
+- **A prefixed tag or a rolling `latest` release defeats the built-in regex.**
+  Symptom: `couldn't match '/releases/tag/(?:v|V)?([\d.]+)' in
+  https://api.github.com/repos/o/r/releases/latest`.
+  Cause: the default `github` regex assumes the tag is `v<digits>`. Tags such as
+  `open-design-v0.24.1` / `note-gen-v0.37.1` never match, and a `/releases/latest`
+  that points at a rolling release (`vsnapshot`, `web-39e6ba2f`) never matches
+  either -- even when the real versions sit right below it.
+  Action: move the endpoint into `checkver.url` and either anchor on
+  `"tag_name\"\\s*:\\s*\"<prefix>v([\\d.]+)\""`, or point at the releases *list*
+  with `/releases/tag/v([\\d.]+)` -- `Match` takes the first hit in document
+  order, so a rolling release is simply skipped (`watt-toolkit`, `linkandroid`).
+- **A dash-suffixed version gets truncated, and the truncated URL 404s.**
+  Symptom: the app is reported a version that does not exist, the download 404s,
+  and Excavator fails with `Could not update <app>`.
+  Cause: `jupyterlab-desktop` tags are `v4.6.3-1`; the built-in regex stops at
+  the dash and yields `4.6.3`.
+  Action: capture the suffix explicitly --
+  `"regex": "tag_name\"\\s*:\\s*\"v?([\\d.]+(?:-\\d+)?)\""` -- and read the W107
+  warning as a nudge to double-check the comparison, not as a blocker.
+- **Upstream can retire the GitHub release assets, or move the repo.**
+  Symptom: the API lists a release with an empty `assets` array, or the asset
+  names change between versions; hash extraction finds nothing and the fallback
+  download 404s.
+  Cause: `aionui` moved its installers to `static.aionui.com/releases/$version/`
+  and left a note in the release body; `mistweaverco/bananas` renamed itself to
+  `dont-be-evil-company/p2p.kiwi` and renamed every asset
+  (`bananas-setup_x64.exe` -> `p2p-kiwi-setup_x64.exe`, entry exe
+  `bananas.exe` -> `p2p-kiwi.exe`); `debpalash/VoiceStudio` kept its repo, its
+  `v` tag and its version scheme but repackaged Tauri -> electron-builder
+  between 0.5.3 and 0.5.4, so its MSI (`VoiceStudio_0.5.3_x64_en-US.msi`, still
+  published under v0.5.3) stops existing from v0.5.4 on.
+  Action: read the release body first, then the project site's JS bundle -- the
+  download template is usually a one-liner in it. Rewrite `url` + `autoupdate`,
+  and fix `shortcuts` / `bin` when the entry exe was renamed too. Non-GitHub URLs
+  get their hash by downloading, which is fine. When `checkver` is healthy and
+  only the download 404s, diff the asset list of the last few releases to find
+  the migration point instead of trusting the latest one: `voicestudio` 0.5.6
+  needed `VoiceStudio-Electron-$version-win-x64.exe#/dl.7z` plus a `shortcuts`
+  retarget, `PFiles\VoiceStudio\omnivoice-studio.exe` -> `VoiceStudio.exe`.
+- **electron-builder leaves files outside `app-64.7z`, and `extract_dir` drops
+  them.**
+  Symptom: the app installs and launches, but a bundled sample the vendor
+  installer would have placed is missing.
+  Cause: the outer NSIS archive of `VoiceStudio` 0.5.6 carries
+  `$PLUGINSDIR\app-64.7z`, the `$R0` uninstaller slot *and* plain
+  `resources\backend\assets\samples\...`; the dominant
+  `extract_dir: "$PLUGINSDIR"` idiom keeps only the first and discards the rest.
+  Action: read `7z l` of the installer for top-level entries other than
+  `$PLUGINSDIR` -- the inner payload holds only the sample metadata, not the
+  clips. When such entries exist, drop `extract_dir` / `extract_to` and clean up
+  from `post_install` instead, the shape `ecopaste` and `notegen` use, adding
+  the `$R0` slot to the paths it removes.
+- **`upd --readme` only fires when another field changed.**
+  Symptom: `upd --name X --readme --section "General Use"` prints
+  `nothing to change.` and the README keeps its old row.
+  Cause: `_sync_readme` sits after the `if not changed: return 0` early exit.
+  Action: pair it with a harmless `--set` -- re-setting the same `homepage`
+  counts as a change and rewrites identical bytes.
+- **Probing versions for real: use the bucket wrapper, with a token.**
+  Symptom: `Cannot bind parameter because parameter 'Dir' is specified more than
+  once`, or every `api.github.com` URL is reported invalid.
+  Cause: `bin/checkver.ps1` in the bucket already forwards `-Dir $dir`, and
+  Scoop's `Get-GitHubToken` reads `$env:SCOOP_GH_TOKEN` / `scoop config GH_TOKEN`
+  -- not `GITHUB_TOKEN` -- so unauthenticated API calls hit 60/h.
+  Action: `$env:SCOOP_GH_TOKEN = (gh auth token)`, then `.\bin\checkver.ps1`
+  with no `-Dir`, redirecting `*> $out` because the PowerShell tool drops stdout;
+  the file is UTF-16, so decode it before reading. Expect two to four apps per
+  run to die with `WebClient 请求期间发生异常` -- this network does that.
+- **GitHub's own `digest` is the hash source, so nothing needs downloading.**
+  Symptom: none -- this is the cheap path.
+  Cause: `get_hash_for_app` runs
+  `$..assets[?(@.browser_download_url == '<url>')].digest` against
+  `api.github.com/repos/o/r/releases` for every `releases/download/` URL, and
+  `sha256:<hex>` normalises to the bare digest.
+  Action: pre-fill `hash` from the API instead of downloading a 600 MB
+  installer, then spend the download on `7z l` instead: the inner payload name
+  differs per version and per architecture (`app-64.7z` on x64 but
+  `app-arm64.zip` on arm64 in `aionui` 2.2.2), and only listing the installer
+  proves a manifest's `installer.script` still matches.
 - **The self-check measures the installed bucket, not this package.**
   Symptom: `sm_selftest.py` fails on a manifest you have never touched.
   Cause: the round-trip and lint-baseline groups read

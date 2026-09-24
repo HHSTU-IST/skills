@@ -227,7 +227,8 @@ rumdl fmt skills/project-py/
 rumdl check skills/project-py/
 ```
 
-> 自动修复会连坐仓库里其他 `.md`，`-f` 也不是预演 —— 安全流程与实测记录见第 6 节。
+> `--fix` / `fmt` 的作用范围实测严格受限（见第 6 节），但仍要核对范围 ——
+> 「不给路径」等于扫全仓；`-f` 也不是预演。
 
 **注意**：
 
@@ -264,11 +265,12 @@ rumdl check skills/project-py/
   现象：本想「先看看会改什么」，结果文件已经被改写。
   原因：`-f` 就是 `--fix`，`check` 带上它即直接落盘；预览要用 `--diff`。
   对策：顺序固定为 `--diff` 预览 → `--fix` → `git status` 核对范围 → `git diff` 逐行审查。
-- **`rumdl` 的自动修复会连坐别的 skill。**
-  现象：明明只指定了 `skills/project-py/`，`skills/project-typ/` 也被改了。
-  原因：修复按规则遍历，范围控制不如预期严格。
-  对策：每次 `--fix` / `fmt` 后跑 `git status --short`；多出来的用
-  `git checkout -- <path>` 还原。
+- **`rumdl --fix` 的作用范围严格受限，但「核对范围」这一步仍要保留。**
+  现象：担心「只指定了 `skills/project-py/`，`skills/project-typ/` 也被一起改了」。
+  原因：**未复现** —— 文件参数与目录参数都只动给定路径下的文件；唯一会波及全仓的写法是
+  **不给路径**（或给仓根），那不是连坐，就是「扫了全仓」。
+  对策：每次 `--fix` / `fmt` 后照旧跑 `git status --short` 核对范围（这是保险，不是补救）；
+  多出来的用 `git checkout -- <path>` 还原。
 - **在子目录新建 `pyproject.toml` 会丢掉根规则集。**
   现象：子目录里的代码突然不再被根配置的规则检查。
   原因：`ruff` 就近取配置，该目录会脱离根 `[tool.ruff.lint]`。

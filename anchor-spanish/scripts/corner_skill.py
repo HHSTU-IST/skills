@@ -129,31 +129,45 @@ if __name__ == "__main__":
         raise SystemExit(2)
     session = init_skill()
 
+    def drive(s: SkillSession, *, verbose: bool = False) -> None:
+        """模拟用户走完 intake：按 max_choices 限流，使累计不超限。
+
+        自检与演示共用同一份循环 —— 两份写法会各自漂移（改了一处忘了另一处）。
+        `verbose=True` 逐题打印取到的分组与选择（演示用）；自检只要最终答案。
+        """
+        while True:
+            payload = s.ask_next()  # 一次返回当前问题的所有分组(chunk)
+            if not payload:
+                break
+            first = payload[0]
+            if verbose:
+                print(f"· 提问 {first['id']} ({first['header']}): {first['question']}")
+            spec = next(
+                q
+                for q in s.config.question_plan
+                if q.id == first["id"].split("#", 1)[0]
+            )
+            budget = spec.max_choices or 1
+            already = len(s.answers.get(spec.key, []))
+            for chunk in payload:
+                chosen = [chunk["options"][0]["value"]]
+                if already >= budget:
+                    if verbose:
+                        print(
+                            f"    · 分组 {chunk['id']} → 跳过（已达 "
+                            f"{spec.key} 上限 {budget}）"
+                        )
+                    continue
+                if verbose:
+                    print(f"    · 分组 {chunk['id']} → 模拟选择: {chosen}")
+                s.submit(chunk["id"], chosen)
+                already += 1
+
     # 自检模式：验证 auto_recommend + ask=false 配对 与 topic_options 公共 API
     if argv:
         import dataclasses as _dc
 
         print("=== auto_recommend 配对自检 ===")
-
-        def drive(s: SkillSession) -> None:
-            while True:
-                payload = s.ask_next()
-                if not payload:
-                    break
-                first = payload[0]
-                spec = next(
-                    q
-                    for q in s.config.question_plan
-                    if q.id == first["id"].split("#", 1)[0]
-                )
-                budget = spec.max_choices or 1
-                already = len(s.answers.get(spec.key, []))
-                for chunk in payload:
-                    chosen = [chunk["options"][0]["value"]]
-                    if already >= budget:
-                        continue
-                    s.submit(chunk["id"], chosen)
-                    already += 1
 
         base_plan = session.config.question_plan
 
@@ -189,30 +203,7 @@ if __name__ == "__main__":
         raise SystemExit(0)
 
     print(f"=== intake 流程（{SKILL_NAME}） ===")
-    while True:
-        payload = session.ask_next()  # 一次返回当前问题的所有分组(chunk)
-        if not payload:
-            break
-        first = payload[0]
-        print(f"· 提问 {first['id']} ({first['header']}): {first['question']}")
-        # 模拟用户：按 max_choices 限流，使累计不超限（避开 demo 自身撞到跨组校验）
-        spec = next(
-            q
-            for q in session.config.question_plan
-            if q.id == first["id"].split("#", 1)[0]
-        )
-        budget = spec.max_choices or 1
-        already = len(session.answers.get(spec.key, []))
-        for chunk in payload:
-            chosen = [chunk["options"][0]["value"]]
-            if already >= budget:
-                print(
-                    f"    · 分组 {chunk['id']} → 跳过（已达 {spec.key} 上限 {budget}）"
-                )
-                continue
-            print(f"    · 分组 {chunk['id']} → 模拟选择: {chosen}")
-            session.submit(chunk["id"], chosen)
-            already += 1
+    drive(session, verbose=True)
 
     print("\n=== 是否收集完成 ===", session.is_intake_done())
     print("\n=== 导出 Markdown 简报 ===")

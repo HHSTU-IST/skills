@@ -1,6 +1,6 @@
 ---
 name: skill-draft
-description: Turn a workflow or domain knowledge into a Skill package, and make every file in it pass a quality gate before it is saved. Python goes through ruff + ty, Markdown through rumdl, TS/JS through oxlint + oxfmt, CSS through oxfmt, PNG through oxipng, JSON through parse validation. Trigger words: create a skill, new skill, write SKILL.md, save this workflow as a skill, edit a skill, validate a skill package, add a file type to the gate.
+description: Turn a workflow or domain knowledge into a Skill package, and make every file in it pass a quality gate before it is saved. Trigger words: create a skill, new skill, write SKILL.md, save this workflow as a skill, edit a skill, validate a skill package, add a file type to the gate.
 agent_created: true
 ---
 
@@ -203,40 +203,61 @@ moved.
 One entry per thing the gate or its tools have surprised us with. Add a line
 as soon as a new one shows up — this is where the density is.
 
-- **The gate judges by this machine's `rumdl` user config.** The config
-  file is `%APPDATA%\rumdl\rumdl.toml`, holding
+- **The config that counts is the repo's own `.rumdl.toml`, not this
+  machine's user config.** `rumdl` looks for `.rumdl.toml` upward from
+  **each file** it is handed, not from the caller's directory, and once it
+  finds one it drops the user config (`%APPDATA%\rumdl\rumdl.toml`)
+  **whole** instead of merging key by key: any key the project file omits
+  falls back to the built-in default, never to the user's value. Here that
+  file is the workspace-root `.rumdl.toml`, holding
   `disable = ["MD013", "MD025", "MD029", "MD033"]` and
-  `line-length = 120`. So **long lines, repeated H1s, ordered-list
-  numbering, and inline HTML do not warn on this machine**, and the gate
-  will not stop them. The gate has no switch to change the regime; it
-  always reflects the local config. To re-check a package at `rumdl`'s
-  native strictness, bypass the gate and call it directly:
-  `rumdl check --no-config <file>` (and likewise for formatting,
-  `rumdl fmt --no-config --check <file>`).
+  `line-length = 120`, so **long lines, repeated H1s, ordered-list
+  numbering, and inline HTML do not warn, and the gate will not stop
+  them.** Those four rules are off because the repo switched them off, and
+  the file ships with the repo, so the same holds for every package here on
+  any machine. To judge a package at `rumdl`'s built-in strictness, ignore
+  every config file: `rumdl check --no-config <file>` (alias `--isolated`;
+  the verify stage has no such switch). Inline overrides survive it, which
+  keeps one deliberate threshold while dropping the rest:
+  `rumdl check --no-config --config 'MD013.line-length = 60' <file>`.
 - `MD013` (only when not disabled) is what forces manual rewrapping. It
   measures display width: CJK characters count as 2 columns, with a
   default limit of 80. And being too wide is not enough on its own; there
   must also be a space at or past column 80. Pure-CJK long sentences
   often do not warn, while long sentences containing English and inline
-  code always do. To calibrate the measured width, use an inline
-  threshold: `rumdl check --config 'MD013.line-length = 60' <file>`; the
+  code always do. To calibrate the measured width, use an inline threshold
+  — with `--no-config`, since this repo disables `MD013`:
+  `rumdl check --no-config --config 'MD013.line-length = 60' <file>`. The
   number in the error message is the measured width, more reliable than
-  counting by hand.
+  counting by hand. Without `--no-config` the threshold alone reports
+  nothing here: a disabled rule stays disabled no matter how low you set
+  its limit.
 - `MD025` (only when not disabled) is what demotes a body H1: with
   `title:` in the frontmatter, `rumdl` treats it as the document title,
   the body `#` becomes a "second level-1 heading", and `fmt`'s fix is to
   **demote that H1 to H2** — a silent structural change, which only
-  demotes and never promotes. The rule is disabled on the current machine
-  so the effect does not occur; but SKILL.md's frontmatter still writes
-  only `name` + `description` with no `title:`, so it stays safe on any
+  demotes and never promotes. This repo's config disables the rule, so the
+  effect does not occur here; and SKILL.md's frontmatter writes only
+  `name` + `description` with no `title:`, so it stays safe on any
   machine.
-- Two configuration traps. First, `rumdl config file` prints the default
-  global path **without distinguishing whether the file exists**, so do
-  not use it to answer "is there a config". To confirm whether a key takes
-  effect, use `rumdl config get <key>` and read the source tag (`default`
-  / `project config` / `user config`). Second, **unrecognized key names
-  are silently ignored**, so a typo equals not writing it at all — after
-  editing config you must `get` every key to confirm.
+- Three configuration traps. First, `rumdl config file` names the file it
+  actually loaded, and prints `No configuration file found (using
+  defaults)` when there is none — but it answers for the **cwd**: `config
+  file` and `config get` resolve upward from the current directory, while
+  `check` and `fmt` resolve upward from **each file**. When the two
+  disagree, trust the `check` run. Second, `config get` needs a qualified
+  key — `global.disable`, not `disable`, which exits 2 with `Unknown key:
+  disable. Must be in the form global.key, MDxxx.key, or MDxxx`. The source
+  tag on the line (`default` / `project config` / `user config`) is what
+  says which file won. To list everything the project file sets in one
+  shot, skip the per-key loop: `rumdl config --no-defaults` prints only the
+  non-default keys, tagged `[from .rumdl.toml]`. Third, **an unrecognized
+  key is ignored, and the warning it prints never reaches the gate**:
+  `rumdl` writes `[config warning] Unknown global option in <file>: <key>`
+  to stderr and still exits 0, and the gate drops the output of any step
+  that exits 0. So a typo equals not writing the key at all — after editing
+  config you must `get` every key to confirm. Add `--deny-config-warnings`
+  when you want that warning to become exit 2 and actually be seen.
 - `rumdl fmt`'s exit code does not indicate whether anything changed; only
   `rumdl fmt --check` returns 1 when a change is needed. Calling a file
   clean requires both `check` and `fmt --check`.

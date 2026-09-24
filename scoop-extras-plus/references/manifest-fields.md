@@ -130,9 +130,8 @@ Key points:
 
 1. If a manifest uses `architecture`, `autoupdate` must also supply
    per-architecture URLs (W103); otherwise Excavator will not update them on
-   a bump. Seven violate this today:
-   `bitcomet`, `comfyui-manager`, `defender-remover`, `hermes-one`, `mineru`,
-   `open-design`, `zlibrary`.
+   a bump. Four violate this today: `bitcomet`, `comfyui-manager`, `hermes-one`,
+   `mineru`.
 2. If the current download URL carries a version, the `autoupdate` URL must
    carry `$version` (W110); otherwise the version rises while the URL stays put
    and the package goes stale forever. `cumora` is exactly that case (URL

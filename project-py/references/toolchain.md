@@ -103,19 +103,20 @@ rumdl check skills/project-py/
 | `rumdl fmt <path>`          | 格式化并落盘                            |
 | `rumdl fmt --check <path>`  | 只判断「是否需要格式化」，需要则 exit 1 |
 
-> `-f` 是 `--fix` 的短选项。**`rumdl check -f skills/` 会当场改文件**，
-> 不是预演 —— 想预览请用 `--diff`。这是实测踩过的坑：本想「先看看」，
-> 结果把 `skills/project-typ/` 也一起改了。
+> `-f` 是 `--fix` 的短选项。**`rumdl check -f skills/project-py/` 会当场改文件**，
+> 不是预演 —— 想预览请用 `--diff`。
 
 ### 改完必须核对范围
 
-自动化修复有**连坐**风险。每次 `--fix` 或 `fmt` 之后跑 `git status`，
-确认只有预期文件被改；多出来的立即还原：
+`--fix` / `fmt` 的**路径范围实测严格受限**：给了文件或目录，就只动那些路径下的文件。
+真正危险的是**不给路径**（或给仓根）—— 那等于扫全仓，会改掉成片的无关 `.md`。
+
+所以每次 `--fix` 或 `fmt` 之后照旧跑 `git status`，确认只有预期文件被改；多出来的立即还原：
 
 ```bash
 git status --short            # 核对范围
 git diff -- <path>            # 逐行审查
-git checkout -- <path>        # 还原被连坐的文件
+git checkout -- <path>        # 还原被顺手改掉的文件
 ```
 
 **不要**在没核对范围的情况下接受 rumdl 的自动修复。

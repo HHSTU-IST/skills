@@ -78,7 +78,8 @@ Warnings do not affect installation but they slow down maintenance. With
 - **W102**: only `http://` is reported; the `mirror.ctan.org` texlive
   mirror is allow-listed.
 - **W103**: `architecture` and `autoupdate.architecture` must come in pairs,
-  otherwise Excavator bumps the version but not the per-arch URLs. 7 hit it.
+  otherwise Excavator bumps the version but not the per-arch URLs. 4 hit it:
+  `bitcomet`, `comfyui-manager`, `hermes-one`, `mineru`.
 - **W104**: the version in the download URL disagrees with `version`, so the
   release process was hand-edited. `cumora` hits this.
 - **W105**: the app is missing from, or duplicated in, the README summary
