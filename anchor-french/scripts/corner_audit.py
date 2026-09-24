@@ -13,8 +13,11 @@
    版本号反过来——唯一真源是配置 `meta.version`，`SKILL.md` 不许再写一份；
 4. 内容纯度：包内不得出现其它语言的配置文件名（防止误拷他语言资产）。
 
-任一失败即非零退出；失败一律以一条 `✗` 报出，不抛栈 —— 读不了的文件（非 UTF-8 /
-不可读）与不合法的配置 JSON 也算一类发现。
+四段**全部跑完才收尾**，一次报全（某一段失败不截断后续段）；任一失败即非零退出。
+例外只有两条：配置或 `SKILL.md` 正文读不了时直接收尾 —— 二者是其余各段的公共输入，
+报一条比连带出一串无意义的假发现好。失败一律以一条 `✗` 报出，不抛栈 —— 读不了的
+文件（非 UTF-8 / 不可读）与不合法的配置 JSON 也算一类发现；`$schema` 指向远端时
+**不校验**，改以一条 `○` 说明（**跳过 ≠ 通过**）。
 """
 
 from __future__ import annotations
@@ -71,8 +74,12 @@ def _read(path: Path, what: str) -> tuple[str, str]:
         return "", str(exc)
 
 
-def audit_identity(cfg: dict) -> list[str]:
-    """包身份校验：一个配置、文件名正确、SKILL.md 与 meta 的名称一致。"""
+def audit_identity(cfg: dict, md: str) -> list[str]:
+    """包身份校验：一个配置、文件名正确、SKILL.md 与 meta 的名称一致。
+
+    `md` 是 `main()` 读好的正文。正文读不了时 `main()` 就收尾了，所以这里能假定它
+    是有效文本；也因此这一段不再自己去读 —— 各段各读一遍，同一个读失败会被报两次。
+    """
     fails: list[str] = []
     found = sorted(p.name for p in assets_dir().glob("*-corner-config.json"))
     if found != [DEFAULT_CONFIG_NAME]:
@@ -82,10 +89,6 @@ def audit_identity(cfg: dict) -> list[str]:
         if DEFAULT_CONFIG_NAME not in found:
             return fails  # 缺本包配置，后续检查无意义
 
-    md_path = skill_root() / SKILL_MD_NAME
-    md, err = _read(md_path, "技能包正文")
-    if err:
-        return [*fails, f"[{SKILL_NAME}] {err}"]
     m = re.search(r"^name:\s*(\S+)", md, re.MULTILINE)
     fm_name = m.group(1) if m else "<none>"
     if fm_name != SKILL_NAME:
@@ -106,17 +109,28 @@ def audit_identity(cfg: dict) -> list[str]:
     return fails
 
 
+def _remote_schema_ref(cfg: dict) -> str | None:
+    """`$schema` 指向远端 URL 时返回该 URL，否则 `None`（含缺失与本地相对路径）。
+
+    判定只此一处：`audit_schema()` 用它决定跳不跳，`main()` 用它决定打不打那条 `○`。
+    """
+    ref = cfg.get("$schema")
+    return ref if isinstance(ref, str) and "://" in ref else None
+
+
 def audit_schema(cfg: dict) -> list[str]:
     """编辑器 schema：`$schema` 指向包内真实存在的 JSON Schema，且配置满足其 `required`。
 
     只做「引用可解析 + 顶层必填键齐备」这一层轻量校验（脚本仅依赖标准库，不引入
-    JSON Schema 校验器）；取值域的完整校验交给编辑器的 schema 支持。
+    JSON Schema 校验器）；取值域的完整校验交给编辑器的 schema 支持。远端 URL 本包
+    不校验，由 `main()` 打一条 `○` 说明 —— 静默 `return []` 会让人把「跳过」读成
+    「校验过」。
     """
     tag = f"[{SKILL_NAME}/{LANG}]"
     ref = cfg.get("$schema")
     if not ref:
         return [f"{tag} 配置缺少 $schema，编辑器无法补全 / 校验"]
-    if "://" in ref:  # 远端 schema：本包不校验
+    if _remote_schema_ref(cfg):
         return []
     target = (config_path().parent / ref).resolve()
     if not target.is_file():
@@ -136,12 +150,9 @@ def audit_schema(cfg: dict) -> list[str]:
     return []
 
 
-def audit(cfg: dict) -> list[str]:
-    """本包「SKILL.md ↔ 配置」逐项比对。"""
+def audit(cfg: dict, md: str) -> list[str]:
+    """本包「SKILL.md ↔ 配置」逐项比对；`md` 由 `main()` 读好传进来。"""
     tag = f"[{SKILL_NAME}/{LANG}]"
-    md, err = _read(skill_root() / SKILL_MD_NAME, "技能包正文")
-    if err:
-        return [f"{tag} {err}"]
     fails: list[str] = []
 
     def need(token: str, what: str) -> None:
@@ -262,18 +273,28 @@ def audit(cfg: dict) -> list[str]:
     return fails
 
 
-def _report(fails: list[str]) -> int:
-    """统一收尾：打印 `OK` 或逐条 `✗`，返回退出码（0 = 干净）。"""
+def _report(fails: list[str], notes: list[str] | None = None) -> int:
+    """统一收尾：逐条打 `✗`，再逐条打 `○` 说明；返回退出码（0 = 干净）。
+
+    `✗` 是发现的不一致，决定退出码；`○` 是「这一段没验」的告知，不影响退出码 ——
+    两种行必须看得出区别，否则「跳过」会被读成「通过」。
+    """
     print(
         f"{SKILL_NAME} ({LANG}): {'OK' if not fails else str(len(fails)) + ' 处不一致'}"
     )
     for line in fails:
         print("  ✗", line)
+    for line in notes or []:
+        print("  ○", line)
     return 1 if fails else 0
 
 
 def main() -> int:
-    """三段闸门：schema（引用 + 必填顶层键）→ 身份 → 文档 ↔ 配置；任一失败即停。"""
+    """三段闸门：schema（引用 + 必填顶层键）→ 身份 → 文档 ↔ 配置 / 内容纯度。
+
+    **三段全部跑完再收尾**，一次报全所有不一致（某段失败不截断后续段）—— 否则使用者
+    要经历「改一处 → 重跑 → 又冒出一类新问题」。任一不一致即非零退出。
+    """
     try:
         cfg_path = config_path()
     except ConfigError as exc:
@@ -290,12 +311,22 @@ def main() -> int:
         return _report([f"配置不是合法 JSON（{exc.msg}）"])
     if not isinstance(cfg, dict):
         return _report([f"配置顶层必须是 JSON 对象，实际为 {type(cfg).__name__}"])
+    md, err = _read(skill_root() / SKILL_MD_NAME, "技能包正文")
+    if err:
+        # 正文是身份段与文档段的公共输入，读不了就三段都无从谈起
+        return _report([f"[{SKILL_NAME}] {err}"])
     fails: list[str] = []
-    for stage in (audit_schema, audit_identity, audit):
-        fails = stage(cfg)
-        if fails:
-            break
-    return _report(fails)
+    fails.extend(audit_schema(cfg))
+    fails.extend(audit_identity(cfg, md))
+    fails.extend(audit(cfg, md))
+    notes: list[str] = []
+    remote = _remote_schema_ref(cfg)
+    if remote:
+        notes.append(
+            f"[{SKILL_NAME}/{LANG}] 未校验 schema 引用：$schema 指向远端 {remote}，"
+            "本包只校验包内相对引用"
+        )
+    return _report(fails, notes)
 
 
 if __name__ == "__main__":

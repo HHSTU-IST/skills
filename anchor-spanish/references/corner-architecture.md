@@ -322,14 +322,15 @@ python scripts/corner_skill.py selftest                # 自动推荐配对 + �
 python scripts/corner_audit.py                         # schema 引用 + 身份 + 文档 ↔ 配置 + 纯度审计
 ```
 
-`scripts/corner_audit.py` **只审计本包**，不与其他技能包交叉比对（每包自包含）。检查按 schema → 身份 → 文档 ↔ 配置 → 纯度依次执行，任一段失败即停：
+`scripts/corner_audit.py` **只审计本包**，不与其他技能包交叉比对（每包自包含）。检查按 schema → 身份 → 文档 ↔ 配置 → 纯度依次执行，**四段全部跑完才收尾**（某段失败不截断后续段，一次报全）：
 
 1. **schema 引用**：`$schema` 指向包内真实存在且可解析（带 `title`）的 JSON Schema，且配置齐备该 schema 的 `required` 顶层键；
 2. **身份**：`assets/` 下恰好一个 `*-corner-config.json` 且名为 `es-corner-config.json`；`SKILL.md` frontmatter `name` == `SKILL_NAME` == `meta.skill_name`；
 3. **文档 ↔ 配置**：frontmatter `version` ↔ `meta.version`、`brief_filename`、`constraints`（人数 / 时长 / 选项上限）、`time_allocation`（分钟与占比逐行核对，且分钟合计须等于 `duration_minutes`、pct 合计 ≈ 1.0）、`style.output_path_template` / `pos_groups` / `phase_labels`、`vocab_targets` 区间、`exam.levels` 标签、§3 交互契约表中每题的 `ask` 标注；
 4. **内容纯度**：包内任何 `.md` / `.py` / `.json` 都不得出现别的语言配置文件名。
 
-任何一项不符即非零退出。
+任何一项不符即非零退出。输出只有两种行：`✗` 是报出的不一致（决定退出码），`○` 是「这一段没验」的告知（不影响退出码）。
+`○` 目前只有一种来源：`$schema` 写成 URL 时本包解析不了它，引用与必填键两层校验都被跳过 —— **跳过不等于校验过**，这正是它不叫 `✓` 的原因。
 
 ## 5. 本包实例取值
 

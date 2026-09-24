@@ -43,7 +43,7 @@ ALLOWED_KEYS = frozenset(
 TYPE_WORDS = ("约束型", "流程型", "混合型")
 PACKAGE_NAMES = ("qooklet", "touying-quick", "theorion")
 
-# 软门槛：5000 token / 500 行。估算口径与 docs/skill-audit.md 一致（bytes / 3.5）。
+# 软门槛：5000 token / 500 行。估算口径与 docs/skill-review.md 一致（bytes / 3.5）。
 TOKEN_BYTES_PER_TOKEN = 3.5
 TOKEN_LIMIT = 5000
 LINE_LIMIT = 500
