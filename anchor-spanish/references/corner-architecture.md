@@ -354,3 +354,29 @@ from corner_skill import init_skill
 
 session = init_skill()  # 等价：加载 + 构造 SkillSession
 ```
+
+## 6. 按语法点的题型骨架（由 SKILL.md 附录 A.3 下沉）
+
+由 `SKILL.md` 附录 A.3 下沉而来：一次生成只用到其中几行，正文里不必常驻。
+
+每条语法点给出 3 档难度骨架；使用时把 {S} 换成本次话题，并打上对应 DELE 标签：
+
+| 语法点           | 易（B1）骨架                         | 中（B2）骨架                                | 难（C1 / C2）骨架                                |
+| ---------------- | ------------------------------------ | ------------------------------------------- | ------------------------------------------------ |
+| 简单过去时       | *¿Qué hiciste respecto a {S}?*       | *Cuenta una anécdota sobre {S}.*            | *¿En qué cambió {S} tu manera de ver las cosas?* |
+| 未完成过去时     | *¿Qué hacías de niño con {S}?*       | *Describe cómo era {S} antes.*              | *¿Cómo ha evolucionado {S} con el tiempo?*       |
+| 条件式           | *Si tuvieras…, ¿qué harías con {S}?* | *¿Qué le aconsejarías a alguien sobre {S}?* | *¿Y si {S} no existiera, cómo viviríamos?*       |
+| 虚拟式           | *Es necesario que… para {S}.*        | *Dudo que {S} sea fácil.*                   | *Aunque digan que {S},…*                         |
+| 比较级           | *¿Prefieres {S} o {S2}?*             | *¿En qué es {S} mejor que {S2}?*            | *¿Qué modelo de {S} se impone?*                  |
+| ser vs estar     | *¿Cómo es {S}?*                      | *¿Cómo está {S} hoy?*                       | *¿En qué estado quedó {S}?*                      |
+| por vs para      | *¿Para qué sirve {S}?*               | *¿Por qué importa {S}?*                     | *¿Hasta qué punto cambia {S} por/debido a algo?* |
+| 疑问句           | *¿Qué opinas de {S}?*                | *¿Cómo explicas {S}?*                       | *¿Hasta dónde llegarías por {S}?*                |
+| 宾语代词         | *¿Lo has hecho por {S}?*             | *Nos lo explicaron sobre {S}.*              | *Lo que se ha sacado de {S}…*                    |
+| 将来时           | *¿Qué harás con {S}?*                | *¿Cuándo empezarás {S}?*                    | *¿Cómo será {S} dentro de diez años?*            |
+| 人称 a           | *¿A quién admiras respecto a {S}?*   | *¿A quién le contarías {S}?*                | *¿A qué personas afecta {S}?*                    |
+| 被动             | *{S} suele malinterpretarse.*        | *Se ha decidido algo sobre {S}.*            | *¿Cómo percibe la sociedad {S}?*                 |
+| 连词从句         | *Porque {S}…*                        | *Aunque {S},…*                              | *A condición de que {S}, ¿qué haríamos?*         |
+| 数字 / 量词      | *¿Cuántos/as {S}?*                   | *La mayoría de los {S} son…*                | *¿Cuál es el equilibrio justo de {S}?*           |
+| gerundio（进行） | *Haciendo {S}, se aprende…*          | *{S} se entiende actuando.*                 | *Sigue haciendo {S}, pero…*                      |
+
+> 骨架仅供启发；实际生成时结合话题与所选水平微调。

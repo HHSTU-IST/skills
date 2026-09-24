@@ -354,3 +354,27 @@ from corner_skill import init_skill
 
 session = init_skill()  # 等价：加载 + 构造 SkillSession
 ```
+
+## 6. 按语法点的题型骨架（由 SKILL.md 附录 A.3 下沉）
+
+由 `SKILL.md` 附录 A.3 下沉而来：一次生成只用到其中几行，正文里不必常驻。
+
+每条语法点给出 3 档难度骨架；使用时把 {S} 换成本次话题，并打上对应 DELF / DALF 标签：
+
+| 语法点      | 易（B1）骨架                                 | 中（B2）骨架                                 | 难（C1 / C2）骨架                                    |
+| ----------- | -------------------------------------------- | -------------------------------------------- | ---------------------------------------------------- |
+| 复合过去时  | *Qu'est-ce que tu as fait à propos de {S} ?* | *Raconte une anecdote concernant {S}.*       | *En quoi {S} a-t-il changé ta vision des choses ?*   |
+| 条件式      | *Si tu avais…, que ferais-tu pour {S} ?*     | *Que conseillerais-tu à quelqu'un sur {S} ?* | *Et si {S} n'existait plus, comment vivrions-nous ?* |
+| 虚拟式      | *Il faut que tu… pour {S}.*                  | *Je doute que {S} soit facile.*              | *Bien qu'on dise que {S}, …*                         |
+| 比较级      | *Préfères-tu {S} ou {S2} ?*                  | *En quoi {S} est-il meilleur que {S2} ?*     | *Quel modèle de {S} l'emporte ?*                     |
+| 介词 à / de | *De quoi parle-t-on quand on dit {S} ?*      | *C'est à / de {S} que je pense.*             | *À quel point {S} t'appartient-il ?*                 |
+| 疑问句      | *Que penses-tu de {S} ?*                     | *Comment expliques-tu {S} ?*                 | *Jusqu'où irait-on pour {S} ?*                       |
+| 宾语代词    | *Tu l'as fait pour {S} ?*                    | *On nous l'a expliqué à propos de {S}.*      | *Ce qu'on en a retenu de {S}…*                       |
+| 将来时      | *Que feras-tu pour {S} ?*                    | *Quand commenceras-tu {S} ?*                 | *À quoi ressemblera {S} dans dix ans ?*              |
+| en / y      | *Tu en as beaucoup parlé, de {S}.*           | *J'y pense souvent, à {S}.*                  | *En tirer parti de {S} : comment ?*                  |
+| 被动        | *{S} est souvent mal compris.*               | *Cela a été décidé à propos de {S}.*         | *Comment {S} est-il perçu par la société ?*          |
+| 连词从句    | *Parce que {S}…*                             | *Bien que {S}, …*                            | *À condition que {S}, que ferions-nous ?*            |
+| 数字 / 量词 | *Combien de {S} ?*                           | *La plupart des {S} sont…*                   | *Quel est le juste équilibre de {S} ?*               |
+| 现在分词    | *En {S}, on apprend…*                        | *{S}, c'est en agissant qu'on comprend.*     | *Tout en {S}, il faut aussi…*                        |
+
+> 骨架仅供启发；实际生成时结合话题与所选水平微调。

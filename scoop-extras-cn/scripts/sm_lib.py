@@ -1059,8 +1059,21 @@ def _repo_from_manifest(manifest: dict) -> str | None:
     return github_repo_of(manifest.get("homepage"))
 
 
-def _regex_version(pattern: str, text: str) -> str | None:
-    match = re.search(pattern, text)
+def _regex_match(pattern: str, text: str, reverse: bool = False):
+    """Return Scoop's match for `pattern`: the first one, or the last.
+
+    `checkver.reverse` makes Scoop take `Select-Object -Last 1` instead of the
+    first match, which is what mirror directory listings need: they are sorted
+    ascending, so the newest version is the last one.
+    """
+    matches = list(re.finditer(pattern, text))
+    if not matches:
+        return None
+    return matches[-1] if reverse else matches[0]
+
+
+def _regex_version(pattern: str, text: str, reverse: bool = False) -> str | None:
+    match = _regex_match(pattern, text, reverse)
     if not match:
         return None
     if "version" in match.re.groupindex:
@@ -1068,6 +1081,13 @@ def _regex_version(pattern: str, text: str) -> str | None:
     if match.groups():
         return match.group(1)
     return match.group(0)
+
+
+def _flag(value) -> bool:
+    """Read a Scoop boolean, which may also be spelled as the string "true"."""
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
 
 
 def jsonpath_get(data, path: str):
@@ -1129,6 +1149,7 @@ def detect_latest(manifest: dict, name: str = "") -> tuple[str | None, str]:
         return None, "checkver structure is invalid"
     if "re" in checkver or "jp" in checkver:
         checkver = normalize_checkver(checkver)
+    reverse = _flag(checkver.get("reverse"))
 
     if checkver.get("script"):
         return (
@@ -1178,7 +1199,7 @@ def detect_latest(manifest: dict, name: str = "") -> tuple[str | None, str]:
 
     version = None
     if checkver.get("regex"):
-        version = _regex_version(checkver["regex"], body)
+        version = _regex_version(checkver["regex"], body, reverse)
         if version is None:
             return None, f"regex {checkver['regex']} matched nothing"
     else:
@@ -1186,7 +1207,11 @@ def detect_latest(manifest: dict, name: str = "") -> tuple[str | None, str]:
 
     if checkver.get("replace"):
         template = checkver["replace"]
-        match = re.search(checkver["regex"], body) if checkver.get("regex") else None
+        match = (
+            _regex_match(checkver["regex"], body, reverse)
+            if checkver.get("regex")
+            else None
+        )
         if match and match.groupdict():
             for key, value in match.groupdict().items():
                 template = template.replace("${" + key + "}", value or "")

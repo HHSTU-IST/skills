@@ -121,7 +121,9 @@ Key points:
   `$url = $json.homepage` under its "Not Specified" branch. A regex on its own
   is the shorthand for exactly that.
 - `reverse`, `replace` and `useragent` need the **object** form; a bare string
-  cannot carry them.
+  cannot carry them. **`reverse: true` means "take the last regex match"**
+  (Scoop's `Select-Object -Last 1`), which is what ascending directory listings
+  need -- `libreoffice-cn` reads its version out of one.
 - A `checkver.github` value must be a repository URL, **never an
   `api.github.com` one**: Scoop appends `/releases/latest` unconditionally, so
   the API path turns into a 404 (W111). Put the API endpoint in `checkver.url`

@@ -109,9 +109,58 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 - **用标题代替整行加粗**（`style.no_full_line_bold`）：元信息 / 小节标题使用 `##` / `###`，禁止用整行 `**加粗**` 充当标题（避免 rumdl MD036 告警）。
 - 难度贴合所选水平；例句尽量贴近话题场景；问题明确标注 DELE 等级。
 
+## 6. 踩坑点
+
+都是这套包与它自己闸门的实际行为，不是偏好。发现一个加一个，写成「现象 → 原因 → 对策」。
+
+- **演示模式会把简报写进当前工作目录。**
+  现象：跑 `python scripts/corner_skill.py`（不带 `selftest`）后，当前目录多出一份
+  `es-corner-brief.md`。
+  原因：`export_brief()` 按 `Path.cwd()` 落盘 —— 包目录要能整体同步进
+  `~/.workbuddy/skills/`，运行产物不能写回包内。
+  对策：只想看演示就换到临时目录跑，或跑 `selftest`（它在导出前退出，不落盘）。
+- **`corner_audit.py` 只能当文件执行，不能被 import。**
+  现象：`import scripts.corner_audit` 报 `No module named 'corner_config'`。
+  原因：脚本用同目录平级导入，只有直接执行脚本文件时，解释器才会把 `scripts/` 放进
+  `sys.path`。
+  对策：一律 `python scripts/corner_audit.py`；cwd 随意，从别处用绝对路径跑同样成立。
+- **Q4 会拆成 3 组，最后一组只有 1 个选项。**
+  现象：话题题返回 `Q4#1` / `Q4#2` / `Q4#3`，选项数是 6 / 6 / 1。
+  原因：题库 12 项 + 随机哨兵 1 项 = 13，按每题 6 个拆；哨兵置顶是为了首组就能看见。
+  对策：回填用带 `#` 的子问题 id；「Q4 只问一次」是错觉。
+- **选择上限按整题累计，不按分组算。**
+  现象：组 1 选满 2 个后再在组 2 选 1 个，`submit()` 抛「累计上限 2 个（去重后 3 个）」。
+  原因：它把「已有 + 本次」去重后再判长度；只看单组会放过越界。
+  对策：分组只是展示手段，上限对整题生效。
+- **题库加到 24 项就崩。**
+  现象：`build_ask_payload()` 抛「需拆成 5 组，超过 `questions_max_per_call=4`」。
+  原因：每组 6 个 × 单次上限 4 组 = 单次最多 24 个选项（含哨兵），到 25 就超，
+  尾部选项永远不可达。
+  对策：题库最多 23 项；要再加就同步抬高 `questions_max_per_call`，或拆成两个语义键。
+- **改配置必须同步正文，否则审计直接失败。**
+  现象：改了 JSON 取值后 `corner_audit.py` 报「未出现」或「附录 A.5 缺行或数值不符」。
+  原因：审计拿正文里的取值与 JSON 逐条比对 —— 时间分配表的占比 / 分钟、词汇量区间
+  `25–35`（是**短破折号**不是连字符）、POS 分组名、阶段标签、等级标签、`（6）`，
+  都要一字不差。
+  对策：改 JSON 的同时改正文，改完跑一次审计。
+- **正文里不要出现别的语言的配置名。**
+  现象：顺手举了个「误拷他语言资产」的例子，审计判失败。
+  原因：末段扫全包 `.md` / `.py` / `.json`，出现非本包的 `<lang>-corner-config.json`
+  即报错。
+  对策：举例时用「其它语言的配置」这类措辞，别把文件名写出来。
+- **Q2 会拆组 —— 只有「代词系统」会。**
+  现象：Q1 选了「代词系统」后，Q2 返回 `Q2#1` / `Q2#2` 两个子问题（选项 6 + 2）。
+  原因：它下面挂了 8 个二级语法点，超过每组 6 个的展示上限；其余各组 4–6 个都不拆。
+  对策：按子问题 id 回填，别假设二级语法点一次问完。
+- **取值非法不报错，静默退化。**
+  现象：`level` 传了配置里没有的值，简报的词汇量退成「混合」那一档，等级标签却原样照抄。
+  原因：`_resolve_answers()` 用 `level in vocab_targets else "mixed"` 兜底，
+  `label_of_level()` 找不到就返回原值。
+  对策：`level` 只从配置的 `participant_levels` 里取。
+
 ## 附录 A · 生成框架与方法（无法数据化的部分）
 
-> 以下为方法论：话题生成、30 题框架、题型骨架、句型复杂度、规模备注。
+> 以下为方法论：话题生成、30 题框架、句型复杂度、规模备注；题型骨架表已下沉到 `references/corner-architecture.md`（§6）。
 > 所有**可选项数据**以 `assets/es-corner-config.json` 为准，由 `scripts/corner_config.py` 加载；增删选项只改 JSON。
 
 ### A.1 话题生成方法（适用于任何语法点）
@@ -142,27 +191,9 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 
 ### A.3 按语法点的题型骨架（通用，可替换话题）
 
-每条语法点给出 3 档难度骨架；使用时把 {S} 换成本次话题，并打上对应 DELE 标签：
-
-| 语法点           | 易（B1）骨架                         | 中（B2）骨架                                | 难（C1 / C2）骨架                                |
-| ---------------- | ------------------------------------ | ------------------------------------------- | ------------------------------------------------ |
-| 简单过去时       | *¿Qué hiciste respecto a {S}?*       | *Cuenta una anécdota sobre {S}.*            | *¿En qué cambió {S} tu manera de ver las cosas?* |
-| 未完成过去时     | *¿Qué hacías de niño con {S}?*       | *Describe cómo era {S} antes.*              | *¿Cómo ha evolucionado {S} con el tiempo?*       |
-| 条件式           | *Si tuvieras…, ¿qué harías con {S}?* | *¿Qué le aconsejarías a alguien sobre {S}?* | *¿Y si {S} no existiera, cómo viviríamos?*       |
-| 虚拟式           | *Es necesario que… para {S}.*        | *Dudo que {S} sea fácil.*                   | *Aunque digan que {S},…*                         |
-| 比较级           | *¿Prefieres {S} o {S2}?*             | *¿En qué es {S} mejor que {S2}?*            | *¿Qué modelo de {S} se impone?*                  |
-| ser vs estar     | *¿Cómo es {S}?*                      | *¿Cómo está {S} hoy?*                       | *¿En qué estado quedó {S}?*                      |
-| por vs para      | *¿Para qué sirve {S}?*               | *¿Por qué importa {S}?*                     | *¿Hasta qué punto cambia {S} por/debido a algo?* |
-| 疑问句           | *¿Qué opinas de {S}?*                | *¿Cómo explicas {S}?*                       | *¿Hasta dónde llegarías por {S}?*                |
-| 宾语代词         | *¿Lo has hecho por {S}?*             | *Nos lo explicaron sobre {S}.*              | *Lo que se ha sacado de {S}…*                    |
-| 将来时           | *¿Qué harás con {S}?*                | *¿Cuándo empezarás {S}?*                    | *¿Cómo será {S} dentro de diez años?*            |
-| 人称 a           | *¿A quién admiras respecto a {S}?*   | *¿A quién le contarías {S}?*                | *¿A qué personas afecta {S}?*                    |
-| 被动             | *{S} suele malinterpretarse.*        | *Se ha decidido algo sobre {S}.*            | *¿Cómo percibe la sociedad {S}?*                 |
-| 连词从句         | *Porque {S}…*                        | *Aunque {S},…*                              | *A condición de que {S}, ¿qué haríamos?*         |
-| 数字 / 量词      | *¿Cuántos/as {S}?*                   | *La mayoría de los {S} son…*                | *¿Cuál es el equilibrio justo de {S}?*           |
-| gerundio（进行） | *Haciendo {S}, se aprende…*          | *{S} se entiende actuando.*                 | *Sigue haciendo {S}, pero…*                      |
-
-> 骨架仅供启发；实际生成时结合话题与所选水平微调。
+每条语法点 3 档难度骨架的完整表格（把 {S} 换成本次话题，再打上对应等级标签）在
+`references/corner-architecture.md`（§6）—— 一次生成只查其中几条，留在正文里
+占的篇幅不划算。
 
 ### A.4 词汇量与句型复杂度（B1–C2）
 

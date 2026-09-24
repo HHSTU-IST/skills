@@ -469,7 +469,7 @@ flowchart TD
 
 Three sibling skills that turn "upstream shipped something new" or "upstream shipped a new version" into a single command. They share an architecture: a recipe catalog, a shared library, a three-command CLI, a self-check, and a rule engine that validates the result before it is written.
 
-They differ only where their target repositories force them to. The extras builds are the same skill ported to two buckets with different README conventions and different dominant package shapes; `scoop-extras-cn` additionally documents its divergence from `scoop-extras-plus` in its own `SKILL.md`.
+They differ only where their target repositories force them to. The extras builds are the same skill ported to two buckets with different README conventions and different dominant package shapes; `scoop-extras-cn` additionally documents its divergence from `scoop-extras-plus` in its own `references/porting.md`.
 
 |                 | `scoop-main-plus`          | `scoop-extras-plus`          | `scoop-extras-cn`          |
 | :-------------- | :------------------------- | :--------------------------- | :------------------------- |
@@ -562,7 +562,7 @@ flowchart TD
 
 ### scoop-extras-cn
 
-Manifests for the **Extras-CN** bucket (88 manifests, Chinese-facing). Same recipe catalog, same builders, same canonical key order as the Extras-Plus build; the differences are the ones this bucket actually forces, and `SKILL.md` tabulates all of them.
+Manifests for the **Extras-CN** bucket (88 manifests, Chinese-facing). Same recipe catalog, same builders, same canonical key order as the Extras-Plus build; the differences are the ones this bucket actually forces, and `references/porting.md` tabulates all of them; the flags and invocations live in `references/cli.md`.
 
 What makes this one distinct:
 
