@@ -133,7 +133,7 @@ npx skills add <owner>/<repo> -y                 # 项目级（默认行为）
 
 ### scoop-main-plus
 
-触发词：*generate manifest、new manifest、update manifest、lint manifest、scoop-main-plus、main-plus、scoop manifest、bucket manifest、checkver、autoupdate、hash verification、version bump、Excavator。*
+触发词：*scoop manifest、generate / update / lint manifest、checkver、autoupdate、hash、version bump、Excavator、main-plus、scoop-main-plus。*
 
 ```text
 给 main-plus 加上新版 ripgrep 的 manifest。
@@ -169,7 +169,7 @@ extras-plus 里哪些包的版本和 URL 已经对不上了？
 
 ### scoop-extras-cn
 
-触发词：与上面同一组，再加 *scoop-extras-cn* 以及中文形式 *生成 manifest、更新 manifest、检查 manifest。*
+触发词：与上面同一组，再加 *extras-cn* 与 *scoop-extras-cn*，以及中文形式 *生成 / 更新 / 检查 manifest。*
 
 ```text
 给 extras-cn 加一个新包，中文名是「飞书」。

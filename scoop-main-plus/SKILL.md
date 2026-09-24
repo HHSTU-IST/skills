@@ -1,27 +1,17 @@
 ---
 name: scoop-main-plus
-version: 1.5.0
 description: >
-  Generate, update and lint Main-Plus Scoop bucket manifests (bucket/*.json).
-  Three trigger commands: generate builds a skeleton from one of 18 built-in
-  recipes and fills in version, URL, hash, checkver, autoupdate, bin and
-  shortcuts, optionally syncing the README summary row; update edits fields by
-  dotted path, bumps the version while rewriting hard-coded URLs, recomputes
-  hashes and probes upstream for the latest release (batch sweep supported);
-  lint runs 23 rules against this repo's CI and .editorconfig conventions and
-  repairs formatting with --fix-format. The target bucket is resolved at run
-  time from $Scoop, so an installed copy writes new manifests into
-  $Scoop/buckets/main-plus from any working directory.
-  Triggers: generate manifest, new manifest, update manifest, lint manifest,
-  scoop-main-plus, main-plus, scoop manifest, bucket manifest, checkver,
-  autoupdate, hash verification, version bump, Excavator, Scoop bucket
-  maintenance, lint bucket.
-display_name: "Scoop Main-Plus Manifest Forge"
-visibility: "public"
+  Generate, update and lint Scoop manifests in the main-plus bucket
+  (bucket/*.json): scaffold from recipes, bump version, rehash, lint 23 rules.
+  Triggers: scoop manifest, generate/update/lint manifest, checkver, autoupdate,
+  hash, version bump, Excavator, main-plus, scoop-main-plus.
 agent_created: true
 ---
 
 # Scoop Main-Plus Manifest Forge
+
+**Skill type**: process (流程型) — a three-command workflow (generate / update /
+lint) plus a rule engine; the hard constraints are preconditions, not the point.
 
 Turn "upstream shipped something new" or "upstream shipped a new version" into a
 single command. All three trigger commands -- **generate / update / lint** --
@@ -69,12 +59,10 @@ scripts is version-gated, so an older 3.x still runs them.
 - **Never bake `$Scoop` in.** No file may hold the resolved path
   (`<drive>:\...\buckets\...`); the environment is read on every run, so one
   package works on every machine. The self-check fails if a literal reappears.
-- **Never add a `.json` data file inside this skill.** The bucket's CI runs
-  `Import-Bucket-Tests.ps1`, which validates every *changed* `.json` in the
-  repository against scoop's manifest schema -- repo-wide, because
-  `Get-GitChangedFile -Include '*.json'` ignores its `-Path` when listing files.
-  A non-manifest `.json` here turns CI red. That is why the catalog is
-  `assets/recipes.jsonc`; use `.jsonc` (or a `.py` module) for any further data.
+- **Never add a `.json` data file inside this skill.** A non-manifest `.json`
+  here turns CI red, which is why the catalog is `assets/recipes.jsonc`; use
+  `.jsonc` (or a `.py` module) for any further data. The CI mechanism it dodges
+  is in section 7.
 - **Preserve existing order**: `update` only slots **new** fields into their
   canonical position; existing fields keep their place. A full reorder needs an
   explicit `--reorder`.
@@ -82,7 +70,7 @@ scripts is version-gated, so an older 3.x still runs them.
   and error-level findings block the write (`--force` overrides).
 - **This bucket is bin-first**: it installs 39 of its 40 packages through `bin`
   and declares no `shortcuts` at all. Reach for a shortcut only when the package
-  really is a desktop app, and expect `github-cli-archive` to refuse one.
+  really is a desktop app -- section 7 explains what happens when you do.
 - **README is controlled**: the table lives under `## ⭐️ Summary` with the three
   columns `App / Language / Auto-Update ?`. A missing section skips the sync with
   an explanation, and a column the skill does not recognise is never touched.
@@ -140,12 +128,9 @@ that set `arch_block` (`github-cli-archive`, `toolchain-env`,
 `github-single-exe`), because that is what 20 of the 40 manifests here do; pass
 `--flat-url` to collapse it to a top-level `url` / `hash` instead.
 
-**32bit is not supported.** This bucket ships 64bit and arm64 only, so `arch`
-accepts just those two values and there is no `--url32` / `--hash32`. Passing
-`32bit` fails with a deliberate message rather than a generic typo complaint.
-Upstream still carries it on 528 files, which is why `references/coverage.md`
-keeps it in the distribution table -- that is survey data, not a supported
-option.
+**32bit is not supported.** This bucket ships 64bit and arm64 only: `arch`
+accepts just those two, and there is no `--url32` / `--hash32`. What upstream
+still carries is survey data, not an option -- see section 7.
 
 **Pick one of three ways to obtain the hash, never invent it**: `--fetch-hash`
 streams the download and computes it; `--hash-from-file <path>` uses a package
@@ -177,8 +162,8 @@ python scripts/scoop_manifest.py upd --all --checkver --apply --rehash  # sweep
 `--checkver` understands the `github` string, `{"github": ...}`, bare-string
 regex (scraped from `homepage`), `{"url", "regex"}`, `{"url", "jsonpath",
 "regex", "replace"}`, `{"url", "xpath", ...}` and `{"sourceforge": ...}`.
-**The `{"script": ...}` form needs a Scoop environment and explicitly reports that
-it cannot probe offline**; use `bin/checkver.ps1` instead.
+**The `{"script": ...}` form cannot be probed offline**; use `bin/checkver.ps1`
+instead (section 7).
 
 Safety net: the rule engine runs after every change and error-level findings
 **block the write** (`--force` overrides); `--dry-run` previews and
@@ -199,14 +184,12 @@ python scripts/scoop_manifest.py lint --rules          # print the rule catalog
 `--fix-format` touches formatting only (indent / CRLF / trailing newline) and
 never JSON semantics.
 
-Line endings are checked repo-wide, not just per manifest. A full `lint` also
+Line endings are checked repo-wide, not just per manifest: a full `lint` also
 walks the working tree -- skipping `.git/` and the tool caches -- and reports
 every text file that is not CRLF, which is what `.editorconfig` demands for
-`[*]`. That pass is read-only, because it reaches into `bin/`, `scripts/` and
-`.github/`, which belong to Scoop and to the repo's CI; `--fix-format`
-normalises only the files this skill owns, `bucket/*.json` and `README.md`. A
-README summary sync writes CRLF unconditionally, so it cannot quietly strip the
-endings from a file it only meant to add one row to.
+`[*]`. That pass is read-only and reaches into directories this skill does not
+own; `--fix-format` normalises only `bucket/*.json` and `README.md`. The traps
+inside that pass are in section 7.
 
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.
@@ -222,11 +205,8 @@ found so far:
 | `micromamba`, `n-m3u8dl-re`, `typst-ts` | `version` carries non-numeric parts (`2.9.0-0`, `0.6.0-beta`, `0.8.0-rc3`), which autoupdate can mishandle | W107 |
 
 Line endings are no longer among them: `typst-ts` was the only file written with
-LF, and it has since been normalised. W112 watches that class of problem across
-the whole working tree, instead of leaving it to a per-manifest rule.
-
-One issue no rule catches, worth fixing by hand: `typst-ts` installs from a
-`.zip` while its `autoupdate` points at a `.tar.gz`.
+LF, and it has since been normalised. `W112` watches that class of problem
+across the whole working tree instead of leaving it to a per-manifest rule.
 
 ## 6. Boundaries
 
@@ -235,7 +215,69 @@ private unpacking logic beyond `$PLUGINSDIR` (hand-writing is easier); archives
 over 2GB (aria2 and hash verification degrade); `.jar` launchers, which need a
 hand-written `.cmd` shim; and any change under `bin/`, `scripts/` or `.github/`.
 
-## 7. Maintenance
+## 7. Gotchas
+
+One entry per thing the bucket, its CI or the tooling has surprised us with. Add
+a line as soon as a new one shows up -- this is where the density is.
+
+- **A non-manifest `.json` anywhere in this package turns CI red.**
+  Symptom: CI fails on a file that is plainly not a manifest.
+  Cause: the bucket CI hands Scoop's manifest gate every changed path matching
+  its `*.json` include pattern -- a `-like` match on the repo-relative path,
+  anywhere in the tree, so the `-Path` argument narrows nothing -- and validates
+  each against `schema.json`.
+  Action: keep data in `assets/recipes.jsonc` (or a `.py` module). The suffix is
+  the whole point -- `*.json` does not match `.jsonc` -- and the content stays
+  strict JSON, since the rename dodges the gate rather than licensing comments
+  (`json-parse` in skill-draft would reject those).
+- **A resolved `$Scoop` path anywhere fails the self-check.**
+  Symptom: `sm_selftest.py` reports a literal `<drive>:\...\buckets\...`.
+  Cause: the environment is read on every run precisely so that one package
+  works on every machine; a stored copy breaks that promise.
+  Action: read `SCOOP`, then `Scoop`, at run time; never bake the result in.
+- **`arch 32bit` is refused on purpose, and upstream still carries it.**
+  Symptom: passing `32bit` fails with a deliberate message rather than a generic
+  typo complaint.
+  Cause: this bucket ships 64bit and arm64 only, so there is no `--url32` /
+  `--hash32` to accept it.
+  Action: use `64bit+arm64`. The 528 upstream files that still declare `32bit`
+  are survey data in `references/coverage.md`, not a supported option.
+- **A `{"script": ...}` checkver cannot be probed offline.**
+  Symptom: `--checkver` reports that it cannot probe the manifest.
+  Cause: the script form needs a live Scoop environment, which the command does
+  not have.
+  Action: run `bin/checkver.ps1` instead.
+- **The self-check measures the installed bucket, not this package.**
+  Symptom: `sm_selftest.py` fails on a manifest you have never touched.
+  Cause: the round-trip and lint-baseline groups read
+  `$Scoop/buckets/main-plus`, which grows with every autoupdate commit -- the
+  package ships no bucket of its own.
+  Action: read the failure as news about the bucket rather than a broken skill;
+  the package groups (catalog, docs, name) are the ones judging the package.
+- **The line-ending pass reaches outside this skill, and it is read-only.**
+  Symptom: `lint` reports files under `bin/`, `scripts/` and `.github/`.
+  Cause: `W112` walks the whole working tree, because `.editorconfig` demands
+  CRLF for `[*]`; those directories belong to Scoop and to the repo's CI.
+  Action: leave them alone. `--fix-format` normalises only the two things this
+  skill owns, `bucket/*.json` and `README.md`, and a README sync writes CRLF
+  unconditionally, so it cannot quietly strip the endings from a file it only
+  meant to add one row to.
+- **`github-cli-archive` refuses a shortcut.**
+  Symptom: a package that genuinely ships a desktop app cannot use the obvious
+  recipe.
+  Cause: this bucket is bin-first -- 39 of its 40 packages install through `bin`
+  and it declares no `shortcuts` at all -- so the recipe declines one on
+  purpose.
+  Action: read the refusal as the signal that the package is not a CLI tool, and
+  pick a recipe that emits `shortcuts`.
+- **The rule engine has a blind spot: archive format versus `autoupdate`.**
+  Symptom: `lint` is green, yet the installed build is the wrong one.
+  Cause: no rule compares the install archive's extension with the URL
+  `autoupdate` points at. `typst-ts` installs from a `.zip` while its
+  `autoupdate` points at a `.tar.gz`.
+  Action: check that pair by hand.
+
+## 8. Maintenance
 
 ```bash
 python scripts/sm_selftest.py            # full self-check (offline)

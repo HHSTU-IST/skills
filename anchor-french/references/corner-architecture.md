@@ -16,13 +16,16 @@
 
 ```text
 anchor-french/
-├── SKILL.md            工作流正文
-├── scripts/            确定性代码（仅 stdlib）
-│                      corner_config.py / corner_skill.py / corner_audit.py
-├── references/         按需加载的规范文档：corner-architecture.md（本文件）
+├── SKILL.md                           工作流正文
+├── scripts/                           确定性代码（仅 stdlib，不调用 LLM）
+│   ├── corner_config.py               本包解析层：JSON → SkillConfig + 查询 API + 身份常量
+│   ├── corner_skill.py                skill 主体：intake 状态机 + 简报导出
+│   └── corner_audit.py                一致性守卫：schema / 身份 / 文档 ↔ 配置 / 纯度
+├── references/
+│   └── corner-architecture.md         字段 schema 与接口契约（本文件）
 └── assets/
-                       fr-corner-config.json（唯一数据源）
-                       corner-config.schema.v1.json（配置的 JSON Schema，编辑器补全 / 校验用）
+    ├── fr-corner-config.json          唯一数据源（可选项 + 提问编排 + 风格 + i18n）
+    └── corner-config.schema.v1.json   配置的 JSON Schema（编辑器补全 / 校验，跨包一致）
 ```
 
 解析层用 `skill_root()` / `assets_dir()` 定位文件：脚本**必须**位于 `<skill>/scripts/`、与 `SKILL.md` 同级，否则直接报错（已不再兼容历史上的扁平布局）。
@@ -46,6 +49,31 @@ python scripts/corner_audit.py       # 文档 ↔ 配置 + 包身份 / 纯度审
 - **可测试**：`SkillConfig` 是纯数据对象，可单测、可回显；
 - **编辑器友好**：`assets/` 内附 `corner-config.schema.v1.json`（JSON Schema draft 2020-12），编辑器据此对配置做补全与实时校验；该 schema 与语言无关，各包逐字节一致；
 - **主体与生成解耦**：intake 完成后由 `export_brief()` 导出 Markdown 简报（`fr-corner-brief.md`），skill 主体读取该文件产出主持脚本，不依赖任何 LLM / openai。
+
+## 0.2 运行时管线（谁负责什么）
+
+```text
+assets/fr-corner-config.json   唯一数据源（可选项 + 提问编排 + 风格 + i18n 文案）
+        │
+        ▼  scripts/corner_config.py（本包解析层，仅 stdlib，不硬编码任何文案）
+   SkillConfig 类型化对象 + 查询 API
+        │
+        ▼  scripts/corner_skill.py（skill 主体，驱动 intake 状态机）
+   fr-corner-brief.md（Markdown 简报，落盘到当前工作目录）
+        │
+        ▼  本 skill（读入简报）
+   docs/fr-<topic>.md（最终主持脚本）
+```
+
+| 环节                           | 职责                                             | 不做什么                     |
+| ------------------------------ | ------------------------------------------------ | ---------------------------- |
+| `assets/fr-corner-config.json` | 存所有可选项与文案                               | —                            |
+| `scripts/corner_config.py`     | 解析、校验、派生（推荐话题、提问负载、简报渲染） | 不调用 LLM、不硬编码任何文案 |
+| `scripts/corner_skill.py`      | 按 `question_plan` 逐题收集、导出简报            | 不生成内容                   |
+| `scripts/corner_audit.py`      | 校验 schema 引用、包身份与配置取值               | 不改任何文件                 |
+| 本 skill（`SKILL.md`）         | 读简报 → 产出法文主持脚本                        | 不重新询问已收集的参数       |
+
+> 工作流正文见 `SKILL.md`；表中「本 skill」一行即指它。文档 ↔ 配置的取值比对也以它为准。
 
 ## 1. JSON 字段结构
 
@@ -155,6 +183,23 @@ python scripts/corner_audit.py       # 文档 ↔ 配置 + 包身份 / 纯度审
 
 - 该键仅供 skill 正文与人工阅读时判别产出语言，**解析层不读取**（`scripts/corner_config.py` 无需任何分支）。
 - 其余 `style` 键（`no_hr` / `no_full_line_bold` / `output_path_template` / `pos_groups[]` / `phase_labels{}` / `section_labels{}` / `i18n{}`）为通用键，仅取值不同。
+
+### 1.6 顶层键的消费方
+
+| JSON 顶层键          | 内容                                                        | 消费方 / 对应章节                  |
+| -------------------- | ----------------------------------------------------------- | ---------------------------------- |
+| `meta`               | 技能名、版本、简报文件名                                    | `scripts/corner_skill.py` 落盘命名 |
+| `constraints`        | 人数、时长、各题上限、分组大小                              | 校验 / SKILL.md §3 分组规则        |
+| `grammar_points`     | 一级章节 → 二级条目树                                       | Q1、Q2                             |
+| `participant_levels` | 水平档位（含「混合」）                                      | Q3                                 |
+| `scales`             | 规模（人数区间 + 总时长）                                   | Q5、时间分配校验                   |
+| `topic_dimensions`   | 三个通用生活维度                                            | SKILL.md 附录 A.1 话题生成参考     |
+| `topic_pool`         | 话题题库（可选题库 / 🎲 随机一个 / 自定义输入）             | Q4                                 |
+| `time_allocation`    | 环节占比与分钟数                                            | 简报、SKILL.md 附录 A.5            |
+| `vocab_targets`      | 各水平词汇量区间                                            | 简报、SKILL.md §4.4                |
+| `exam`               | DELF/DALF 等级、标注规则、rubric                            | 简报、SKILL.md §4.3                |
+| `question_plan`      | 提问编排（顺序 / 类型 / 依赖 / 上限 / 模式）                | intake 状态机、SKILL.md §3         |
+| `style`              | 纯法文、无 `---`、输出路径模板、POS 分组、阶段名、i18n 文案 | 简报渲染、SKILL.md §5              |
 
 ## 2. 解析层 `scripts/corner_config.py`
 

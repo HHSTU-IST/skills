@@ -7,6 +7,10 @@ same meanings. Report-only -- the file is never rewritten.
     python check_style.py <file>...
     python check_style.py --list-rules
 
+`--list-rules` doubles as the package self-check: it prints the rule table and
+audits it against `SKILL.md` in both directions, so a rule added on one side
+only is a loud failure instead of a silent drift.
+
 Exit code 0 when clean, 1 when a finding was printed, 2 on a usage or rules-table
 problem.
 """
@@ -167,8 +171,34 @@ def check_file(path: Path) -> list[str]:
     return report
 
 
+TABLE_HEADING_RE = re.compile(
+    r"^##\s*规则表\s*$(?P<body>.*?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL
+)
+TABLE_ROW_RE = re.compile(r"^\|\s*`(?P<id>[^`]+)`", re.MULTILINE)
+
+
+def table_drift(doc: str) -> tuple[list[str], list[str]]:
+    """Compare `RULES` against the rule table in `SKILL.md`.
+
+    Returns `(missing, extra)`:
+
+    - `missing`: a rule the script has but the table never documents. The search
+      is lenient -- the id may appear anywhere in the file, not just the table.
+    - `extra`: an id the table lists but no rule implements. Read from the
+      `## 规则表` section alone, so the report names the exact row to delete.
+
+    Either list being non-empty means the two sides have drifted apart.
+    """
+    missing = [rule.id for rule in RULES if f"`{rule.id}`" not in doc]
+    match = TABLE_HEADING_RE.search(doc)
+    listed = sorted(set(TABLE_ROW_RE.findall(match.group("body")))) if match else []
+    known = {rule.id for rule in RULES}
+    extra = [rule_id for rule_id in listed if rule_id not in known]
+    return missing, extra
+
+
 def list_rules() -> int:
-    """Print the rule table, and audit that SKILL.md documents every id."""
+    """Print the rule table, then audit it against SKILL.md in both directions."""
     width = max(len(rule.id) for rule in RULES)
     for rule in RULES:
         print(f"{rule.id:<{width}}  {rule.prefer}")
@@ -177,11 +207,18 @@ def list_rules() -> int:
     except OSError as exc:
         print(f"\n! cannot read SKILL.md next to this script: {exc}", file=sys.stderr)
         return 2
-    missing = [rule.id for rule in RULES if f"`{rule.id}`" not in doc]
+    missing, extra = table_drift(doc)
     if missing:
         print(f"\n! SKILL.md's table is missing: {', '.join(missing)}", file=sys.stderr)
+    if extra:
+        print(
+            "! SKILL.md's table lists ids with no rule in this script: "
+            f"{', '.join(extra)}",
+            file=sys.stderr,
+        )
+    if missing or extra:
         return 2
-    print(f"\nall {len(RULES)} rule ids are documented in SKILL.md")
+    print(f"\nall {len(RULES)} rule ids match SKILL.md's table, both ways")
     return 0
 
 

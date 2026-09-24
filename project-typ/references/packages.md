@@ -13,6 +13,14 @@ macOS   : ~/Library/Application Support/typst/packages/{local,preview}
 
 `local` 下的包会**遮蔽**同名 `preview` 包，所以本地开发改动会立刻在课件里生效。
 
+```bash
+ls "$env:APPDATA/typst/packages/local"      # 本地开发版（可改写、优先看这个）
+ls "$env:APPDATA/typst/packages/preview"    # 已发布版
+```
+
+课件里最常用的只有五个：`tableq()`、`code()`、`ctext()`、提示框（`tip` / `note` / `quote` /
+`warning` / `caution`）、`touying-quick.with(...)` —— 其余符号要用到时再往下查。
+
 ## qooklet —— 书籍/讲义模板
 
 位置：`packages/local/qooklet/<version>/`，entrypoint `src/lib.typ`。

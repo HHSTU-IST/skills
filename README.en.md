@@ -133,7 +133,7 @@ The two prompts that matter most here are the ones that trip the rules: any requ
 
 ### scoop-main-plus
 
-Triggers: *generate manifest, new manifest, update manifest, lint manifest, scoop-main-plus, main-plus, scoop manifest, bucket manifest, checkver, autoupdate, hash verification, version bump, Excavator.*
+Triggers: *scoop manifest, generate / update / lint manifest, checkver, autoupdate, hash, version bump, Excavator, main-plus, scoop-main-plus.*
 
 ```text
 Add a manifest for the new ripgrep release to main-plus.
@@ -169,7 +169,7 @@ The second is a read-only question the lint rules answer directly (`W104`), whic
 
 ### scoop-extras-cn
 
-Triggers: the same set plus *scoop-extras-cn*; the generate, update and lint manifest commands are also matched in Chinese.
+Triggers: the same set plus *extras-cn* and *scoop-extras-cn*; the generate, update and lint manifest commands are also matched in Chinese.
 
 ```text
 Add a new package to extras-cn and put its Chinese display name in the README.

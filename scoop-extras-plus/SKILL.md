@@ -1,24 +1,17 @@
 ---
 name: scoop-extras-plus
-version: 1.6.0
 description: >
-  Generate, update and lint manifests for the extras-plus Scoop bucket
-  (bucket/*.json). Three trigger commands: generate builds a skeleton from one of
-  16 built-in recipes and fills in version, URL, hash, checkver, autoupdate and
-  shortcuts, optionally syncing the README summary table; update edits fields by
-  dotted path, bumps the version while rewriting hard-coded URLs, recomputes
-  hashes and probes upstream for the latest release (batch sweep supported); lint
-  runs 23 rules against this repo's CI and .editorconfig conventions and repairs
-  formatting with --fix-format. The write target is $env:Scoop/buckets/extras-plus.
-  Triggers: generate manifest, new manifest, update manifest, lint manifest,
-  scoop manifest, scoop-extras-plus, bucket manifest, checkver, autoupdate, hash
-  verification, version bump, Excavator, Scoop bucket maintenance, lint bucket.
-display_name: "Scoop Extras Plus Manifest Forge"
-visibility: "public"
+  Generate, update and lint Scoop manifests in the extras-plus bucket
+  (bucket/*.json): scaffold from recipes, bump version, rehash, lint 23 rules.
+  Triggers: scoop manifest, generate/update/lint manifest, checkver, autoupdate,
+  hash, version bump, Excavator, extras-plus, scoop-extras-plus.
 agent_created: true
 ---
 
 # Scoop Extras Plus Manifest Forge
+
+**Skill type**: process (流程型) — a three-command workflow (generate / update /
+lint) plus a rule engine; the hard constraints are preconditions, not the point.
 
 Turn "upstream shipped something new" or "upstream shipped a new version" into a
 single command. All three trigger commands -- **generate / update / lint** --
@@ -67,14 +60,14 @@ Every example below is relative to the package root.
 - **Self-check before writing**: the result goes through the rule engine first,
   and error-level findings block the write (`--force` overrides).
 - **Never add a `.json` file to this package.** The bucket CI hands Scoop's
-  manifest gate every path a commit changes that matches its `*.json` include
-  pattern -- a `-like` match on the repo-relative path, anywhere in the tree (the
-  `-Path` argument only locates the repository, it does not filter by
-  sub-directory) -- and validates each match against `schema.json`. The recipe
-  catalog is data, not a manifest, so it ships as `assets/recipes.jsonc`:
-  `*.json` does not match `.jsonc`. Keep the content strict JSON -- the `.jsonc`
-  name is there to dodge the gate, not to allow comments, which the `json-parse`
-  checker in skill-draft would reject.
+  manifest gate every changed path matching its `*.json` include pattern -- a
+  `-like` match on the repo-relative path, anywhere in the tree, so the `-Path`
+  argument narrows nothing -- and validates each against `schema.json`. A
+  non-manifest `.json` here therefore turns CI red. The recipe catalog is data,
+  not a manifest, hence `assets/recipes.jsonc`: `*.json` does not match
+  `.jsonc`. Keep the content strict JSON, because the name dodges the gate
+  rather than licensing comments (`json-parse` in skill-draft would reject
+  those). The CI mechanism is in section 7.
 - **README is controlled**: the header must be exactly the three columns
   `App / Auto-Update ? / Note`, and a missing section skips the sync with an
   explanation. Centering already matches this repo's 5 tables byte for byte, so
@@ -179,14 +172,12 @@ python scripts/scoop_manifest.py lint --rules          # print the rule catalog
 `--fix-format` touches formatting only (indent / CRLF / trailing newline) and
 never JSON semantics.
 
-Line endings are checked repo-wide, not just per manifest. A full `lint` also
+Line endings are checked repo-wide, not just per manifest: a full `lint` also
 walks the working tree -- skipping `.git/` and the tool caches -- and reports
 every text file that is not CRLF, which is what `.editorconfig` demands for
-`[*]`. That pass is read-only, because it reaches into `bin/`, `scripts/` and
-`.github/`, which belong to Scoop and to the repo's CI; `--fix-format`
-normalises only the files this skill owns, `bucket/*.json` and `README.md`. A
-README summary sync writes CRLF unconditionally, so it cannot quietly strip the
-endings from a file it only meant to add one row to.
+`[*]`. That pass is read-only and reaches into directories this skill does not
+own; `--fix-format` normalises only `bucket/*.json` and `README.md`. The traps
+inside that pass are in section 7.
 
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.
@@ -216,20 +207,72 @@ over 2GB (aria2 and hash verification degrade); **32bit architecture** — `arch
 takes `64bit` and `arm64` only, so `url32` / `hash32` are neither accepted nor
 emitted; and any change under `bin/`, `scripts/` or `.github/`.
 
-## 7. Maintenance
+## 7. Gotchas
+
+One entry per thing the bucket, its CI or the tooling has surprised us with. Add
+a line as soon as a new one shows up -- this is where the density is.
+
+- **A non-manifest `.json` anywhere in this package turns CI red.**
+  Symptom: CI fails on a file that is plainly not a manifest.
+  Cause: the bucket CI hands Scoop's manifest gate every changed path matching
+  its `*.json` include pattern -- a `-like` match on the repo-relative path,
+  anywhere in the tree, so the `-Path` argument narrows nothing -- and validates
+  each against `schema.json`.
+  Action: keep data in `assets/recipes.jsonc` (or a `.py` module). The suffix is
+  the whole point -- `*.json` does not match `.jsonc` -- and the content stays
+  strict JSON, since the rename dodges the gate rather than licensing comments
+  (`json-parse` in skill-draft would reject those).
+- **The installed bucket outranks the cwd.**
+  Symptom: run the script from inside a different checkout of this bucket, pass
+  no `--repo`, and the manifest lands in the installed copy.
+  Cause: the resolution order is `--repo`, then the installed copy under
+  `$env:Scoop/buckets/extras-plus`, then a walk up from the cwd -- this build
+  deliberately prefers the copy Scoop has installed.
+  Action: pass `--repo <path>` whenever you mean the checkout you are standing
+  in.
+- **The line-ending pass reaches outside this skill, and it is read-only.**
+  Symptom: `lint` reports files under `bin/`, `scripts/` and `.github/`.
+  Cause: `W112` walks the whole working tree, because `.editorconfig` demands
+  CRLF for `[*]`; those directories belong to Scoop and to the repo's CI.
+  Action: leave them alone. `--fix-format` normalises only the two things this
+  skill owns, `bucket/*.json` and `README.md`, and a README sync writes CRLF
+  unconditionally, so it cannot quietly strip the endings from a file it only
+  meant to add one row to.
+- **README recognition is exact, and an unknown table is skipped.**
+  Symptom: a summary row never appears, and nothing is reported as wrong.
+  Cause: the header must be exactly the three columns
+  `App / Auto-Update ? / Note`; anything else is left untouched rather than
+  guessed at, and a missing section skips the sync with an explanation.
+  Action: match the existing header -- centering already matches this repo's 5
+  tables byte for byte, so an inserted row never disturbs the others.
+- **A `{"script": ...}` checkver cannot be probed offline.**
+  Symptom: `--checkver` reports that it cannot probe the manifest.
+  Cause: the script form needs a live Scoop environment, which the command does
+  not have.
+  Action: run `bin/checkver.ps1` instead.
+- **The self-check measures the installed bucket, not this package.**
+  Symptom: `sm_selftest.py` fails on a manifest you have never touched.
+  Cause: the round-trip and lint-baseline groups read
+  `$Scoop/buckets/extras-plus`, which grows with every autoupdate commit -- the
+  package ships no bucket of its own.
+  Action: read the failure as news about the bucket rather than a broken skill;
+  the package groups (catalog, docs, name) are the ones judging the package.
+
+## 8. Maintenance
 
 ```bash
 python scripts/sm_selftest.py            # full self-check (offline)
 python scripts/sm_selftest.py --verbose  # print every detail
 ```
 
-The self-check has 7 groups: recipe catalog shape and the no-`.json` guard ->
-bucket resolution (`$env:Scoop/buckets/extras-plus` is the default target,
-`--repo` overrides it, and no hard-coded Scoop root appears anywhere in the
-package) -> recipe <-> builder coverage both ways -> virtual rendering of all 16
-recipes -> repo serialization round-trip -> README table round-trip and row-insert
-idempotence -> docs <-> code consistency (`lint-rules.md` matches `RULES` word for
-word, `recipes.md` maps one-to-one onto `recipes.jsonc`, and `SKILL.md`'s `name`
+The self-check has 7 groups, in run order: recipe catalog shape, recipe <->
+builder coverage both ways and the no-`.json` guard -> bucket resolution
+(`$env:Scoop/buckets/extras-plus` is the default target, `--repo` overrides it,
+and no hard-coded Scoop root appears anywhere in the package) -> virtual
+rendering of all 16 recipes -> repo serialization round-trip -> README table
+round-trip and row-insert idempotence -> the lint baseline over the real bucket
+-> docs <-> code consistency (`lint-rules.md` matches `RULES` word for word,
+`recipes.md` maps one-to-one onto `recipes.jsonc`, and `SKILL.md`'s `name`
 equals the directory name).
 
 **Adding a recipe** (4 steps, and the self-check catches omissions): add an entry

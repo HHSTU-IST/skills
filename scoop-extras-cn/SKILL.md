@@ -1,26 +1,17 @@
 ---
 name: scoop-extras-cn
-version: 1.5.0
 description: >
-  Generate, update and lint Extras-CN Scoop bucket app manifests (bucket/*.json).
-  Three trigger commands: generate builds a skeleton from one of 16 built-in
-  recipes and fills in version, URL, hash, checkver, autoupdate and shortcuts,
-  optionally syncing the README summary table; update edits fields by dotted
-  path, bumps the version while rewriting hard-coded URLs, recomputes hashes and
-  probes upstream for the latest release (batch sweep supported); lint runs 23
-  rules against this repo's CI and .editorconfig conventions and repairs
-  formatting with --fix-format.
-  The write target is $env:Scoop/buckets/extras-cn.
-  Triggers: generate manifest, new manifest, update manifest, lint manifest,
-  scoop manifest, scoop-extras-cn, bucket manifest, checkver, autoupdate, hash
-  verification, version bump, Excavator, Scoop bucket maintenance, lint bucket,
-  生成 manifest, 更新 manifest, 检查 manifest.
-display_name: "Scoop Extras CN Manifest Forge"
-visibility: "public"
+  Generate, update and lint Scoop manifests in the extras-cn bucket
+  (bucket/*.json): scaffold from recipes, bump version, rehash, lint 23 rules.
+  Triggers: scoop manifest, generate/update/lint manifest, checkver, autoupdate,
+  hash, version bump, Excavator, extras-cn, scoop-extras-cn, 生成/更新/检查 manifest.
 agent_created: true
 ---
 
 # Scoop Extras CN Manifest Forge
+
+**Skill type**: process (流程型) — a three-command workflow (generate / update /
+lint) plus a rule engine; the hard constraints are preconditions, not the point.
 
 Turn "upstream shipped something new" or "upstream shipped a new version" into a
 single command. All three trigger commands -- **generate / update / lint** --
@@ -29,7 +20,7 @@ everything runs offline except `--checkver`, `--fetch-hash` and `--rehash`.
 
 This is the **Extras-CN** build of the skill, adapted to
 `github.com/Scoopforge/Extras-CN` and the copy of that bucket Scoop has
-installed. It was ported from the Extras-Plus build; section 8 lists the
+installed. It was ported from the Extras-Plus build; section 9 lists the
 differences.
 
 **Target**: `$env:Scoop/buckets/extras-cn`, the copy of this bucket Scoop has
@@ -75,25 +66,25 @@ Every example below is relative to the package root.
   explicit `--reorder`.
 - **Self-check before writing**: the result goes through the rule engine first,
   and error-level findings block the write (`--force` overrides).
-- **`--repo` goes before or after the subcommand** and in practice is rarely
-  needed: without it the script prefers `$env:Scoop/buckets/extras-cn`, and only
-  then walks up from the cwd for a directory holding both `bucket/` and
-  `README.md`. A `--repo` that points somewhere other than a bucket root is
-  rejected rather than trusted.
+- **`--repo` goes before or after the subcommand**, and in practice is rarely
+  needed: without it the script prefers the installed copy of this bucket over
+  the cwd. Section 7 covers what that means when you are standing in a different
+  checkout, and why a `--repo` that is not a bucket root is rejected rather than
+  trusted.
 - **Never add a `.json` file to this package.** The bucket CI hands Scoop's
-  manifest gate every path a commit changes that matches its `*.json` include
-  pattern -- a `-like` match on the repo-relative path, anywhere in the tree (the
-  `-Path` argument only locates the repository, it does not filter by
-  sub-directory) -- and validates each match against `schema.json`. The recipe
-  catalog is data, not a manifest, so it ships as `assets/recipes.jsonc`:
-  `*.json` does not match `.jsonc`. Keep the content strict JSON -- the `.jsonc`
-  name is there to dodge the gate, not to allow comments, which the `json-parse`
-  checker in skill-draft would reject.
+  manifest gate every changed path matching its `*.json` include pattern -- a
+  `-like` match on the repo-relative path, anywhere in the tree, so the `-Path`
+  argument narrows nothing -- and validates each against `schema.json`. A
+  non-manifest `.json` here therefore turns CI red. The recipe catalog is data,
+  not a manifest, hence `assets/recipes.jsonc`: `*.json` does not match
+  `.jsonc`. Keep the content strict JSON, because the name dodges the gate
+  rather than licensing comments (`json-parse` in skill-draft would reject
+  those). The CI mechanism is in section 7.
 - **README is controlled**: each summary table's header is exactly three columns
   and a missing section skips the sync with an explanation. `--section` is
-  validated against `summary_sections` in `recipes.jsonc` before anything is
-  written, so a typo fails loudly instead of silently doing nothing.
-  The section names **this** repo uses are listed in section 8.
+  validated before anything is written, so a typo fails loudly instead of
+  silently doing nothing; what counts as valid is in section 7.
+  The section names **this** repo uses are listed in section 9.
 
 ## 2. The three trigger commands
 
@@ -119,7 +110,7 @@ walks up from the cwd looking for a directory holding both `bucket/` and
 4. Where the entry point is: the exe a shortcut should point at (relative to
    `$dir`, backslashes) and any command-line alias
 5. README section: `跨平台` / `Win 专属` / `开源镜像`, optionally narrowed with a
-   `####` sub-heading such as `外语学习` or `学术研究` (see section 8)
+   `####` sub-heading such as `外语学习` or `学术研究` (see section 9)
 
 An unknown `--section` is rejected up front with the list of valid values, rather
 than writing the manifest and leaving the README untouched.
@@ -129,16 +120,8 @@ applies, the required and optional parameters, and same-kind samples (from this
 repo where a manifest of that shape exists, from the upstream bucket otherwise).
 Then compare against `references/recipes.md`.
 
-**Tauri `*_x64-setup.exe` has no recipe of its own.** Tauri's NSIS bundle is not
-electron-builder's: 7z reads it directly and there is no `$PLUGINSDIR` payload,
-so `github-nsis-7z` over-fits it. Use `github-portable-zip` with the `#/dl.7z`
-fragment, then finish with `upd --set`, because that recipe emits neither hook:
-`pre_install` removing `$PLUGINSDIR` and `uninstall.exe` (Tauri writes it in
-lower case), and `suggest` `{"Microsoft Edge WebView2": "extras/webview2"}` --
-the installer would have fetched WebView2 itself, a plain extraction cannot. The
-shortcut target is `<product>-desktop.exe`. Confirm both against
-`7z l <asset>`, which is also how the root tree gets checked. `autoclip` is the
-local example here; `chiri`, `handy` and `easytier-gui` are upstream ones.
+**Tauri `*_x64-setup.exe` has no recipe of its own** -- section 7 has the reason
+and the workaround.
 
 ```bash
 python scripts/scoop_manifest.py gen --name myapp --recipe github-nsis-7z \
@@ -209,14 +192,12 @@ python scripts/scoop_manifest.py lint --rules          # print the rule catalog
 `--fix-format` touches formatting only (indent / CRLF / trailing newline) and
 never JSON semantics.
 
-Line endings are checked repo-wide, not just per manifest. A full `lint` also
+Line endings are checked repo-wide, not just per manifest: a full `lint` also
 walks the working tree -- skipping `.git/` and the tool caches -- and reports
 every text file that is not CRLF, which is what `.editorconfig` demands for
-`[*]`. That pass is read-only, because it reaches into `bin/`, `scripts/` and
-`.github/`, which belong to Scoop and to the repo's CI; `--fix-format`
-normalises only the files this skill owns, `bucket/*.json` and `README.md`. A
-README summary sync writes CRLF unconditionally, so it cannot quietly strip the
-endings from a file it only meant to add one row to.
+`[*]`. That pass is read-only and reaches into directories this skill does not
+own; `--fix-format` normalises only `bucket/*.json` and `README.md`. The traps
+inside that pass are in section 7.
 
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.
@@ -229,7 +210,77 @@ over 2GB (aria2 and hash verification degrade); **32bit architecture** — `arch
 takes `64bit` and `arm64` only, so `url32` / `hash32` are neither accepted nor
 emitted; and any change under `bin/`, `scripts/` or `.github/`.
 
-## 7. Maintenance
+## 7. Gotchas
+
+One entry per thing the bucket, its CI or the tooling has surprised us with. Add
+a line as soon as a new one shows up -- this is where the density is.
+
+- **A non-manifest `.json` anywhere in this package turns CI red.**
+  Symptom: CI fails on a file that is plainly not a manifest.
+  Cause: the bucket CI hands Scoop's manifest gate every changed path matching
+  its `*.json` include pattern -- a `-like` match on the repo-relative path,
+  anywhere in the tree, so the `-Path` argument narrows nothing -- and validates
+  each against `schema.json`.
+  Action: keep data in `assets/recipes.jsonc` (or a `.py` module). The suffix is
+  the whole point -- `*.json` does not match `.jsonc` -- and the content stays
+  strict JSON, since the rename dodges the gate rather than licensing comments
+  (`json-parse` in skill-draft would reject those).
+- **The installed bucket outranks the cwd, and a bad `--repo` is refused.**
+  Symptom: run the script from inside a different checkout, pass no `--repo`,
+  and the manifest lands in `$env:Scoop/buckets/extras-cn`; pass a `--repo` that
+  is not a bucket root and the run stops.
+  Cause: the script prefers the copy Scoop has installed over the cwd, and it
+  treats a `--repo` it cannot recognise as an error rather than trusting it.
+  Action: pass `--repo <path>` whenever you mean the checkout you are standing
+  in.
+- **Tauri's `*_x64-setup.exe` has no recipe of its own.**
+  Symptom: `github-nsis-7z` over-fits it -- 7z reads the bundle directly and
+  there is no `$PLUGINSDIR` payload for that recipe's `pre_install` to strip.
+  Cause: Tauri's NSIS bundle is not electron-builder's, so the two shapes differ
+  even though both arrive as a `-setup.exe`.
+  Action: use `github-portable-zip` with the `#/dl.7z` fragment, then finish
+  with `upd --set`, because that recipe emits neither hook: `pre_install`
+  removing `$PLUGINSDIR` and `uninstall.exe` (Tauri writes it in lower case),
+  and `suggest` `{"Microsoft Edge WebView2": "extras/webview2"}` -- the
+  installer would have fetched WebView2 itself, a plain extraction cannot. The
+  shortcut target is `<product>-desktop.exe`. Confirm both against
+  `7z l <asset>`, which is also how the root tree gets checked. `autoclip` is
+  the local example here; `chiri`, `handy` and `easytier-gui` are upstream ones.
+- **The line-ending pass reaches outside this skill, and it is read-only.**
+  Symptom: `lint` reports files under `bin/`, `scripts/` and `.github/`.
+  Cause: `W112` walks the whole working tree, because `.editorconfig` demands
+  CRLF for `[*]`; those directories belong to Scoop and to the repo's CI.
+  Action: leave them alone. `--fix-format` normalises only the two things this
+  skill owns, `bucket/*.json` and `README.md`, and a README sync writes CRLF
+  unconditionally, so it cannot quietly strip the endings from a file it only
+  meant to add one row to.
+- **Valid `--section` values come from the README, not from the catalog.**
+  Symptom: a section name that looks right is rejected, or one taken from
+  `summary_sections` quietly does nothing.
+  Cause: the values are validated against the sections actually parsed out of
+  the README, falling back to `summary_sections` only when no README is present
+  -- so the tables this repo happens to have decide what is acceptable.
+  Action: pass the table's own heading (`外语学习` / `学术研究` / ...), read off
+  the README rather than guessed. An unknown name is rejected up front with the
+  list of valid values, so nothing is written and the README is left untouched.
+- **A `{"script": ...}` checkver cannot be probed offline.**
+  Symptom: `--checkver` reports that it cannot probe the manifest.
+  Cause: the script form needs a live Scoop environment, which the command does
+  not have.
+  Action: run `bin/checkver.ps1` instead.
+- **The self-check measures the installed bucket, not this package.**
+  Symptom: `sm_selftest.py` fails on a manifest you have never touched.
+  Cause: the round-trip and lint-baseline groups read
+  `$Scoop/buckets/extras-cn`, which grows with every autoupdate commit -- the
+  package ships no bucket of its own.
+  Action: read the failure as news about the bucket rather than a broken skill;
+  the package groups (catalog, docs, name) are the ones judging the package.
+- **Plain `rumdl fmt` litters the directory it runs in.**
+  Symptom: a `.rumdl_cache/` appears in whatever directory the command ran from.
+  Cause: `fmt` caches into the cwd instead of a shared location.
+  Action: always `rumdl fmt --no-cache`.
+
+## 8. Maintenance
 
 ```bash
 python scripts/sm_selftest.py            # full self-check (offline)
@@ -240,14 +291,16 @@ The default target is the same bucket the skill writes to, so
 `$env:Scoop/buckets/extras-cn` needs no `--repo`; pass one only to point at a
 different checkout.
 
-The self-check has 7 groups: recipe catalog shape -> bucket resolution
+The self-check has 8 groups, in run order: recipe catalog shape, recipe <->
+builder coverage both ways and the no-`.json` guard -> bucket resolution
 (`$env:Scoop/buckets/extras-cn` is the default target, `--repo` overrides it,
-and no hard-coded Scoop root appears anywhere in the package) -> recipe <->
-builder coverage both ways -> virtual rendering of all 16 recipes -> repo
-serialization round-trip -> README table round-trip and row-insert idempotence
--> docs <-> code consistency (`lint-rules.md` matches `RULES` word for word,
-`recipes.md` maps one-to-one onto `recipes.jsonc`, and `SKILL.md`'s `name`
-equals the directory name).
+and no hard-coded Scoop root appears anywhere in the package) -> virtual
+rendering of all 16 recipes -> README summary-table dialects (this repo's
+four-column tables alongside the English ones) -> repo serialization round-trip
+-> README table round-trip and row-insert idempotence -> the lint baseline over
+the real bucket -> docs <-> code consistency (`lint-rules.md` matches `RULES`
+word for word, `recipes.md` maps one-to-one onto `recipes.jsonc`, and
+`SKILL.md`'s `name` equals the directory name).
 
 **Adding a recipe** (4 steps, and the self-check catches omissions): add an entry
 to the `recipes` array in `recipes.jsonc` (`id` / `label` / `when` /
@@ -260,10 +313,9 @@ section to `recipes.md` -> run `sm_selftest.py`.
 `lint-rules.md` together, keeping the wording identical.
 
 **Editing docs**: all four markdown files pass `rumdl check` at its default
-(width <= 80 columns); finish with `rumdl fmt --no-cache`, because plain
-`rumdl fmt` drops a `.rumdl_cache/` into whatever directory it runs in.
+(width <= 80 columns); finish with `rumdl fmt --no-cache` (section 7).
 
-## 8. What differs from the Extras-Plus build
+## 9. What differs from the Extras-Plus build
 
 This package was ported from the Extras-Plus build of this skill
 (`$env:Scoop/buckets/extras-plus/skills/scoop-extras-plus`). The recipe

@@ -2,22 +2,15 @@
 name: skill-draft
 description: Turn a workflow or domain knowledge into a Skill package, and make every file in it pass a quality gate before it is saved. Python goes through ruff + ty, Markdown through rumdl, TS/JS through oxlint + oxfmt, CSS through oxfmt, PNG through oxipng, JSON through parse validation. Trigger words: create a skill, new skill, write SKILL.md, save this workflow as a skill, edit a skill, validate a skill package, add a file type to the gate.
 agent_created: true
-version: 1.4.0
-tags:
-  - skill
-  - meta
-  - ruff
-  - ty
-  - rumdl
-  - oxlint
-  - oxfmt
-  - oxipng
 ---
 
 # skill-draft
 
 Create or modify a Skill package, and make every file in it pass the gate
 before it lands on disk.
+
+**Skill type**: process (流程型) — this package owns a workflow and a gate, not
+a tone.
 
 ## Iron rules
 
@@ -35,7 +28,7 @@ before it lands on disk.
 
 ### 1. Fix the identity
 
-Settle three things with the user; none of them is optional.
+Settle these with the user; none of them is optional.
 
 - `name`: lowercase kebab, and it must equal the package directory name,
   or the skill will not load.
@@ -44,6 +37,17 @@ Settle three things with the user; none of them is optional.
 - Invocation: leave `description` for skills that the model or another
   skill should trigger automatically; add `disable-model-invocation: true`
   for the ones the user types by hand.
+- Type: `constraint` (约束型, owns a tone), `process` (流程型, owns a
+  workflow) or `mixed` (混合型). Which one it is decides what to review,
+  so state it in the first paragraph of the body — a constraint skill is
+  judged on its prohibitions and boundaries, a process skill on its steps
+  and completion criteria.
+
+Write nothing else into the frontmatter. `name`, `description` and the
+platform fields (`agent_created`, `disable-model-invocation`) are the whole
+allowed set, and `skill-frontmatter` in the gate fails on any other key. A
+`title` gets read as the document title and demotes the body's H1; `version`
+and `tags` and display-name keys only drift out of date.
 
 ### 2. Fix the skeleton
 
@@ -57,6 +61,13 @@ Settle three things with the user; none of them is optional.
 
 Create only the directories you need. Something belongs in `references/`
 only if the body points to it.
+
+Every package also carries a one-command self-check in `scripts/`, written
+with the standard library and running offline. It has to cover at least three
+things: package-internal consistency (the docs against the code, `name`
+against the directory name), a round-trip over real data, and a comparison
+against an external baseline or rule table. The gate in step 4 checks the
+files; this checks the package.
 
 ### 3. Write the files
 
@@ -186,7 +197,10 @@ moved.
    assertion that "rewriting the same line must be byte-identical", to
    protect the columns this skill does not own.
 
-## Gate details
+## Gotchas
+
+One entry per thing the gate or its tools have surprised us with. Add a line
+as soon as a new one shows up — this is where the density is.
 
 - **The gate judges by this machine's `rumdl` user config.** The config
   file is `%APPDATA%\rumdl\rumdl.toml`, holding
@@ -256,6 +270,12 @@ moved.
   in docs does not false-positive, and binary files are skipped silently.
   It can stay on by default precisely because it does not false-positive —
   a check that false-positives gets turned off sooner or later.
+- `skill-frontmatter` rejects any top-level key outside `name`,
+  `description`, `agent_created` and `disable-model-invocation`. The set is a
+  constant in `checkers.py` rather than a rules-table entry, so widening it
+  takes a code change: the keys it catches are always display names and
+  version numbers that no reader consumes, and each one is a claim that
+  quietly goes stale.
 - Do not remove the syntax-compilation stage. An older `ruff format` used to
   strip the parentheses from `except (A, B):` regardless of target version
   (a bug since fixed), and this stage is what turns that rewrite into a loud

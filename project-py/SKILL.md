@@ -6,6 +6,8 @@ agent_created: true
 
 # Python 代码编写规则（lectures 仓库）
 
+**技能类型**：混合型 —— 硬约束管「不许做什么」（禁 `pip`、禁写死路径），工序管「按什么顺序做」（判定 → 探测 → 询问 → 执行，format → check → ty）。
+
 > 适用范围：`.py` 源码。**不处理 `.ipynb`**。
 
 ## 1. 包管理器：先问，再动手（硬规则）
@@ -192,16 +194,13 @@ micromamba run -n <选定的环境> ty check code python
 **注意**：
 
 - **改完必须格式化。** 不要以为 `check` 通过就等于格式正确。
-- `ruff check` 默认**会改写文件**（根配置 `fix = true`）。只想检视时加 `--no-fix`。
-- `ty` 裸跑会拿系统 Python 当检查环境，普通项目会刷出一片 `unresolved-import` 假警报。
-  **务必用 `micromamba run -n <env> ty check ...`**（`<env>` 由第 2 节选定）。
 - **不要在文档、脚本、配置（含 `ty.toml`）里写工具或环境的绝对路径。**
-  路径一律运行时扫描 `PATH` / 环境变量现取，否则换机或升级后必然失效
-  （`ty.toml` 写死失效时 ty 会以 `Invalid environment.python setting` 直接 exit 2，
-  比不配置更糟）。
+  路径一律运行时扫描 `PATH` / 环境变量现取，否则换机或升级后必然失效。
 - **不要记录工具版本号。** 需要时 `ruff --version` / `ty --version` 现取；
   文档里写死版本会在升级后变成误导信息。
-- 不要在子目录新建 `pyproject.toml`，否则该目录会丢掉根 `[tool.ruff.lint]` 的规则集。
+
+工具自己会咬人的那几处 —— `ruff check` 默认落盘、`ty` 裸跑刷假警报、子目录
+`pyproject.toml` 覆盖根规则集 —— 见第 6 节。
 
 ## 5. Markdown 文档检查：rumdl（**改完本技能自身的 .md 后必跑**）
 
@@ -227,20 +226,11 @@ rumdl fmt skills/project-py/
 rumdl check skills/project-py/
 ```
 
-> ⚠️ **自动修复会连坐仓库里其他 `.md`，必须限定路径 + 改完 `git diff` 复核。**
-> 实测：即使显式指定 `skills/project-py/`，`rumdl check --fix skills/`
-> 之类的不当调用仍会改到 `skills/project-typ/`。**每次 fix 后都要 `git status` 确认
-> 只有预期文件被改**，多出来的用 `git checkout -- <path>` 还原。
->
-> **安全流程**：`--diff` 预览 → 确认无害再 `--fix` → `git status` 核对范围 → `git diff` 逐行审查。
+> 自动修复会连坐仓库里其他 `.md`，`-f` 也不是预演 —— 安全流程与实测记录见第 6 节。
 
 **注意**：
 
-- **`check` 不带 `-f`/`--fix` 时是只读；带上就会直接改写文件。**
-  想先看会改什么，用 `--diff`（只显示差异，不落盘）。
 - **`rumdl fmt` 只会修「可自动修复」的问题**，落盘前先用 `--check` 或 `--diff` 预览。
-- **范围必须限定到本技能目录。** 不加路径参数会扫全仓，会改动
-  `skills/project-typ/` 等无关文件。
 - 部分规则**不可自动修复**，需要手改。本技能常见的有三类：
 
   | 规则 | 含义 | 处理 |
@@ -252,7 +242,41 @@ rumdl check skills/project-py/
 - **不要在仓库根新建 `rumdl.toml` 来放宽规则** —— 那会影响其他人的文档；
   局部豁免请用行内 `<!-- rumdl-disable... -->`。
 
-## 6. 检查清单
+## 6. 踩坑点
+
+都是工具的实际行为，不是偏好。发现一个加一个，写成「现象 → 原因 → 对策」。
+
+- **`ruff check` 会当场改文件。**
+  现象：本想只看一眼问题，跑完发现代码已经被改了。
+  原因：根 `pyproject.toml` 设了 `fix = true`，`ruff check` 默认执行自动修复并落盘。
+  对策：只想检视时加 `--no-fix`。
+- **`ty check` 裸跑刷出一片假警报。**
+  现象：普通项目里满屏 `unresolved-import`。
+  原因：`ty` 默认拿系统 Python 当检查环境，那里没有项目依赖。
+  对策：一律 `micromamba run -n <选定环境> ty check …`，环境名由第 2 节对话框给出。
+- **`ruff` 会连 notebook 一起查。**
+  现象：只改了 `.py`，却报出 `.ipynb` 的问题。
+  原因：`ruff` 原生解析 `.ipynb`，不排除就会一并纳入检查。
+  对策：命令显式带 `--exclude "*.ipynb"`。
+- **`rumdl check -f` 不是预演。**
+  现象：本想「先看看会改什么」，结果文件已经被改写。
+  原因：`-f` 就是 `--fix`，`check` 带上它即直接落盘；预览要用 `--diff`。
+  对策：顺序固定为 `--diff` 预览 → `--fix` → `git status` 核对范围 → `git diff` 逐行审查。
+- **`rumdl` 的自动修复会连坐别的 skill。**
+  现象：明明只指定了 `skills/project-py/`，`skills/project-typ/` 也被改了。
+  原因：修复按规则遍历，范围控制不如预期严格。
+  对策：每次 `--fix` / `fmt` 后跑 `git status --short`；多出来的用
+  `git checkout -- <path>` 还原。
+- **在子目录新建 `pyproject.toml` 会丢掉根规则集。**
+  现象：子目录里的代码突然不再被根配置的规则检查。
+  原因：`ruff` 就近取配置，该目录会脱离根 `[tool.ruff.lint]`。
+  对策：不在子目录新建 `pyproject.toml`。
+- **`ty.toml` 里写死解释器路径比不配置更糟。**
+  现象：`ty` 直接以 `Invalid environment.python setting` 退出（exit 2）。
+  原因：路径在换机或升级后失效，`ty` 不降级，而是报错退出。
+  对策：照第 1 节，路径运行时解析，不写死。
+
+## 7. 检查清单
 
 改完代码后按此顺序执行，**不得跳过格式化那一步**。
 
@@ -268,20 +292,23 @@ rumdl check skills/project-py/
 - [ ] ② `ruff check code python --no-fix --exclude "*.ipynb"` 无输出
 - [ ] ③ `micromamba run -n <选定的环境> ty check code python` 通过（或剩余项均为已记录的存根假警报）
 
-**要运行带第三方依赖的 `.py` 时，追加：**
+### 运行带第三方依赖的 `.py` 时
 
 - [ ] 已判定脚本确实含第三方 import（全标准库就直接跑）
 - [ ] 已探测本机 micromamba / mamba 环境，并逐个确认依赖是否可导入
 - [ ] **已用 `AskUserQuestion` 让用户选定环境，选项里带了「暂停，我自己装」**
 - [ ] 在选定的那个环境里执行，**全程没有用 pip**（缺包就停下，不 pip 补）
 
-**改动本技能自身的 `.md` 时，追加：**
+### 改动本技能自身时
 
 - [ ] ① 已执行 `rumdl check --fix skills/project-py/`
 - [ ] ② 已执行 `rumdl fmt skills/project-py/`
 - [ ] ③ `rumdl check skills/project-py/` 无输出（或剩余项已逐条说明为何不改）
+- [ ] ④ `python <this skill dir>/scripts/selfcheck.py` 退出码 0
 
 ## 参考文件
 
+- `scripts/selfcheck.py` —— 本包自检（frontmatter 与目录名、`references/` 指针、
+  命令 flag、禁止 `pip` 的语境）；只用标准库，离线一键跑通
 - `references/toolchain.md` —— ruff / ty / micromamba / rumdl 的用法、
   **路径现取方式**、**运行脚本时的环境探测与选择**、隔离 venv、缓存放雷

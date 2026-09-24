@@ -6,6 +6,8 @@ agent_created: true
 
 # Typst 课件编写规则
 
+**技能类型**：混合型 —— 六条硬规则管「资源放哪、怎么引」（三类外部文件、相对路径、绝不内联），工序管骨架照抄与编译校验的顺序。
+
 所有仓库的 `.typ` 文件分两种形态，规则不同：
 
 | 形态 | 特征 | 典型文件 |
@@ -25,16 +27,7 @@ agent_created: true
 绝大多数排版需求（表格、代码块、提示框、公式编号、图表引用）这两个包都已经解决，重复造轮子会导致
 版式不一致。
 
-```bash
-# 包的真实位置（Windows）
-codes="$env:APPDATA/typst/packages"
-# macOS 对应：~/Library/Application Support/typst/packages
-
-ls "$env:APPDATA/typst/packages/local"      # 本地开发版（可改写、优先看这个）
-ls "$env:APPDATA/typst/packages/preview"    # 已发布版
-```
-
-检索顺序：
+检索顺序（包装在哪、怎么定位，见 `references/packages.md`）：
 
 1. **先看 `lib/lib.typ`** —— 仓库已经把常用能力通过 `#import "lib/lib.typ": *` 全部转发进来，
    绝大多数情况下直接用即可。
@@ -42,12 +35,9 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
 3. **再查 `packages/preview/<pkg>/<version>/`** —— 版本更多，`preview` 下是各版本的完整快照。
 4. 只有以上都没有，才自己写，并放到**仓库的 `lib/`** 里（而不是散落在章节文件中）。
 
-已核实的常用符号（详见 `references/packages.md`）：
-
-- **qooklet** → `tableq(data, k)`、`table-three-line(color)`、`table-no-left-right(color)`、`ctext()`
-- **touying-quick** → `touying-quick.with(...)`、`bgsky`/`bghexagon`/`bgbook`/`bgyellowish`、`code()`、
-  `ctext()`、`tip`/`note`/`quote`/`warning`/`caution`
-- **theorion**（经 touying-quick 转发）→ 上述提示框本体，`set-theorion-numbering()`
+需要具体签名时才翻 `references/packages.md` —— qooklet / touying-quick / theorion 三个包的完整导出符号
+与配置字段都在那里。课件里最常用的只有五个：`tableq()`、`code()`、`ctext()`、
+提示框（`tip` / `note` / `quote` / `warning` / `caution`）、`touying-quick.with(...)`。
 
 > 注意 `code()`、`ctext()`、`tableq()` 在 qooklet 与 touying-quick 中**各有一份同名实现**，
 > 课件里通过 `lib/lib.typ` 引入，deck 场景生效的是 touying-quick 版本，无需关心来源。
@@ -68,8 +58,7 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
 与对应章节号对齐。
 
 `cv40examples/` 是教材配套示例，**只保留「主题目录一层」**（`cv40examples/<主题>/<文件>`，不再有更深的嵌套）；
-这些脚本自身用相对路径 `../../images/…` 取图，依赖 `code/run_example.py` 的 `os.chdir(script.parent)`，
-**从其它目录直接调用会找不到图**。新增示例脚本时按此层级放，不要再建节目录。
+新增示例脚本时按此层级放，不要再建节目录。这些脚本换个目录就取不到图，原因与调用方式见 §6。
 
 三种写法，按场合选：
 
@@ -93,23 +82,7 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
 > ⚠️ **路径一律相对于仓库根**，不是相对于当前 `.typ` 文件。`v01-环境搭建.typ` 里写的是
 > `read("blender/v01_blender_object.py")`，而不是 `../blender/...`。不要用 `@filename:line` 或绝对路径。
 
-代码量较大时（超过约 20 行）改用两栏版式，左栏放代码、右栏放结果图，写法见 §2.1。
-
-```typst
-#columns()[
-  #[
-    #set text(size: 12pt)
-    #code(read("python/v01_3_pixel.py"))
-  ]
-  #colbreak()
-
-  #[
-    #align(center + horizon)[
-      #figure(image("images/v01-pixel-grid.png", width: 100%), caption: none)
-    ]
-  ]
-]
-```
+代码量较大时（超过约 20 行）改用两栏版式，左栏放代码、右栏放结果图；模板直接照抄 §2.1。
 
 ### 1.3 图片：存 `images/`，`figure` 包 `image`
 
@@ -127,10 +100,9 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
   写死绝对计量后，换模板、改字号、改栏数都会立刻失真。宽度同理（`width: 60%`）。
 - **不要单独写 `#image(...)`** —— 一律用 `#figure(...)` 包住，以保持版式与计数行为一致。
 - 常用素材命名：`ai-*`、`bm-*`（生物医学）、`blender-*`、`app-cv-*`。新增前先确认 `images/` 里没有可复用的。
-- `images/` 被 `.gitignore` 忽略（**不在 git 里，删了不可回滚**），且 **PNG 已用 oxipng 无损压过**。
+- `images/` 被 `.gitignore` 忽略（**不在 git 里**），删图前先看 §6。PNG 已用 oxipng 无损压过，
   重新生成或新增大量 PNG 后可以再压一遍：`python code/oxipng_images.py --days 7`（干跑），
-  加 `--apply` 落盘 —— 会先备份到 `.tmp/backup-images-oxipng/`，压完逐张比像素，省约 30% 且像素不变。
-  `oxipng` 只吃 PNG/APNG，`bmp`/`jpg` 不在能力范围内（批量转格式会打断 `image()` 引用，别做）。
+  加 `--apply` 落盘（会先备份到 `.tmp/backup-images-oxipng/`，压完逐张比像素）。
 
 ### 1.4 数据：存 `data/`，优先 CSV
 
@@ -147,21 +119,8 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
 - 需要表格编号/引用时用 `figure(tableq(...), caption: "标题", supplement: "Table", kind: table)`；
   课件里更常见的是 `figure(tableq(...), caption: "...")`。
 - 手写表格（少量、无外部数据）直接 `table(columns: n, stroke: table-three-line(rgb("000")), ...)`。
-- 只有确实需要多工作表或单元格公式时才用 `xlsx`，写法：
-
-  ```typst
-  #figure(
-    xlsx-parser(
-      read("data/ml-melon-hypo.xlsx", encoding: none),
-      parse-table-style: false,
-      parse-stroke: false,
-      stroke: table-three-line(rgb("000")),
-    ),
-    caption: "",
-  )
-  ```
-
-  注意 `encoding: none` 是必需的（否则二进制被当文本解码）。
+- 只有确实需要多工作表或单元格公式时才用 `xlsx`；`encoding: none` 是必需的（否则二进制被当文本解码）。
+  写法见 `references/syntax.md` 的「表格」节。
 
 > 仓库根有 `.gitignore`，`images/` 与 `output/` 不入库；数据文件在 `data/` 下正常纳入版本管理。
 
@@ -252,56 +211,29 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
 ])
 ```
 
-两条都是老写法（2026-09-24 之前就是这样）。理由是实测：`#colbreak()` 是**块级元素**，
-会把有序列表拦腰截断，右栏从 `1.` 重新编号（`zz-t1`：右栏 `1. 半监督`，原版是 `3. 半监督`）；
-不插 `#colbreak()` 时靠块高**隐式分栏**，列表仍是一整个、编号自然连续。而块高与 `#colbreak()`
-本是两套分栏机制，混用会让断点有两个来源 —— 所以这类块**两个都不动**。
-硬摘外壳的代价也量过：得在断点后补 `#set enum(start: N)` 续号，试过的两条变体（colbreak 粘在行尾、
-缩进到项内容列）编号虽然连续，但右栏整体低一行。
-**结论：不摘外壳、不插 `#colbreak()`，高度维持原值（常见 `18em`）。**
+**结论：不摘外壳、不插 `#colbreak()`，高度维持原值（常见 `18em`）。** 两条都是老写法（2026-09-24
+之前就是这样）；为什么这类块必须与普通块分开处理，见 §6。
 
-六条要点，都是踩过坑换来的：
+写法要点五条，背后的实测记录都在 §6：
 
 1. **不要套 `#block(height: …)`（块内有有序列表时除外，见上），也不要用 `#grid(columns: (a, b), column-gutter: …)`。**
    高度交给内容自己决定；`columns()` 两侧等宽、没有列宽比参数，`grid` 只作真正需要表格语义时使用。
    （`#block(height: …)` 仍可给**单栏**内容限高，见 `references/syntax.md`。）
 2. **每栏之间必须写 `#colbreak()`** —— 只针对**摘掉外壳、高度 auto** 的块；保留 `block(height: …)`
-   的块一个都不写。高度变成 auto 之后 `columns()` 是**流式分栏**：
-   不写 `#colbreak()` 就**根本不会流向下一栏**，后续内容会全部堆在第一栏里（静默改版面）。
-   用默认的弱分栏（`#colbreak()` 而非 `#colbreak(weak: false)`）：前一栏恰好满栏时不会多切出一个空栏。
-   **多栏块要写 n−1 个**——`columns(3)` 两个、`columns(4)` 三个，改写时按栏数逐个补。
+   的块一个都不写。用默认的弱分栏（`#colbreak()` 而非 `#colbreak(weak: false)`）：前一栏恰好满栏时
+   不会多切出一个空栏。**多栏块要写 n−1 个**——`columns(3)` 两个、`columns(4)` 三个，改写时按栏数逐个补。
 3. **每栏用 `#[ … ]` 包住。** `columns()` 只接受**一个**内容块（写 `columns()[a][b]` 是语法错误），
    且块内 `#set` 会一直向后生效；包一层才能让左栏的字号 / 行距不串到右栏。
-4. **`height` / `width` 依旧只写百分数（§1.3），但数值要重新标定。** 原基准是块高 H，
-   摘掉外壳后百分比改按**页面（栏）内可用高度**解析 —— 照抄旧数值通常偏大、会撑破版面，
-   按渲染结果调小到不溢出、不变形为止。（旧做法是把百分比按 `H × N%` 冻结成绝对 `pt`，现已不用。）
+4. **`height` / `width` 依旧只写百分数（§1.3），但摘壳后数值要重新标定。**
    想让图占满一栏，直接给**栏宽**比例最省事：`image(…, width: 90%)` —— 宽度比例只随栏宽走，
    不随页面剩余高度漂移，比 `height: N%` 稳。
-   （**保留外壳的块不受这条影响**：百分比基准仍是块高 `18em`，原样写百分比即可，不必重标定。）
-5. **auto 高度会被「当页剩余空间」截断，截不住就出续页。** 分栏区高度取最高那一栏的自然高度，
-   但不超过当页剩下的空间；装不下时 Typst 另起一页接着画（页眉标题与上一页相同，看着像多出一张空页）。
-   所以**摘掉限高后页数可能变多，先别急着回退**：去比旧版渲染，看那一页右下角是不是本来就在
-   **丢内容**（`#block(height: 17em)` 装不下 21 行代码，尾部 4 行被裁在页外）。camp 的
-   `技能-编程环境.typ` 有两页正是如此——内容回来了，代价是多一张续页。
-6. **块的最后一栏放图，最容易触发续页。** 图比文字高，接在文字后面就顶破当页；把 `#colbreak()`
+   （**保留外壳的块不受这条影响**：百分比基准仍是块高 `18em`，原样写百分比即可。）
+5. **块的最后一栏放图，最容易触发续页。** 图比文字高，接在文字后面就顶破当页；把 `#colbreak()`
    挪到图前面、让图独占一栏（示例页「左代码 + 右结果图」本来就是这个排法）。
 
-改写与校验的工具都在 `code/`：
-
-```bash
-python code/measure_columns_split.py                      # 实测各块的分栏点 -> .tmp/columns-split.json
-python code/unwrap_columns_block.py --splits .tmp/columns-split.json            # 干跑
-python code/unwrap_columns_block.py --splits .tmp/columns-split.json --apply    # 落盘
-```
-
-- **含有序列表的块一律跳过**（判据：块内出现 `+` / `1.` 开头的列表项）：这类块保留
-  `#block(height: ..., columns()[…])` 原样不动 —— **既不摘外壳，也不插 `#colbreak()`**，原因见上。
-- 不给 `--splits` 时，**没有 `#colbreak()` 的块一律跳过**：固定高度是它唯一的分栏依据，
-  摘掉外壳会整块塌进第一栏，比不改更糟。
-- 分栏点不是猜的：按「可分页单元」切分正文（空行分段、段落若为列表再按同级列表项拆细），
-  量每个前缀在**该块自己的单栏宽**下的自然高度，取第一个装不下的单元。
-- **去掉固定高度不是纯格式化**：每页不再预留那段空白，版面会变紧凑、分页点整体前移，页数可能变化。
-  用 `python code/deck_pages.py render .tmp/pages-base` 与 `render` + `diff` 逐页比像素确认有没有改坏。
+存量课件从旧写法批量摘壳的脚本、分栏点算法，以及「比像素确认没改坏」的流程，见
+`references/syntax.md` 的「控制单页容量」节。两条判据这里也照用：**块内有 `+` / `1.` 有序列表的一律跳过**；
+不给 `--splits` 时，**没有 `#colbreak()` 的块一律跳过**（固定高度是它唯一的分栏依据，摘壳会整块塌进第一栏）。
 
 ## 3. 编译与校验
 
@@ -326,29 +258,20 @@ python code/asset_check.py
 **改完 `.typ` 要跑 typstyle。** 命令：`typstyle --check .`（只读）、`typstyle --diff <f>`（只读预览）、
 `typstyle -i <f>`（落盘）。
 
-### CRLF 文件必须还原换行（**最容易踩的坑**）
-
-typstyle **无条件把 CRLF 转成 LF**。本仓库有 11 个 CRLF 文件 —— `lib/lib.typ`、`u-en-intro.typ`、
+**typstyle 无条件把 CRLF 转成 LF。** 本仓库有 11 个 CRLF 文件 —— `lib/lib.typ`、`x-en-intro.typ`、
 `v00-课程设计.typ`、`v02-色彩与像素.typ`、`v03-阈值处理.typ`、`v04-形态学处理.typ`、
 `v11-相机标定与三维重建.typ`、`v15-目标检测实战.typ`、`a05-计算机视觉.typ`、
-`m14-强化学习.typ`、`z-个人介绍.typ`，可直接格式化会产生**整文件 diff**。
+`m14-强化学习.typ`、`z-个人介绍.typ` —— 直接格式化会产生**整文件 diff**。
 
 ```python
 # 格式化后把 CRLF 文件的换行还原
 p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
 ```
 
-> ⚠️ 还原 CRLF 后，`typstyle --check .` 会**一直报这 11 个文件待格式化** —— 这是换行差异，不是内容未格式化。
-> 判断「内容是否已格式化」的正确做法：读成文本、以 `newline="\n"` 写临时文件再 `--check`，
-> 返回 0 即已格式化。
-
-其他要点：
+还原之后还有两个会骗人的判断，见 §6。其他要点：
 
 - 默认会**按字母重排 import 项目**；需保持原顺序时加 `--no-reorder-import-items`。
 - 格式化是**渲染中性**的：本仓库 54 个可编译文件格式化前后渲染 PDF 内容逐字节一致。
-- 校验渲染是否被改动时，**比对 PDF 必须先剔除** `/CreationDate`、`/ModDate`、`D:...` 日期字面量、
-  `<xmp:*Date>`、以及 `xmpMM:InstanceID` / `DocumentID`（Typst 每次构建随机生成），
-  否则会误报差异。
 
 ## 5. 检查清单
 
@@ -367,7 +290,62 @@ p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
 - [ ] 用 `--font-path "C:/Windows/Fonts"` 编译通过，且 `code/slide_qa.py` 无超容告警
 - [ ] **没有**用 `present_files` 展示编译产出的 PDF / PNG
 
-## 6. 参考文件
+## 6. 踩坑点
+
+都是版式、工具与仓库的实际行为，不是偏好。信息密度最高的部分就在这里，发现一个加一个，
+写成「现象 → 原因 → 对策」。
+
+- **`#colbreak()` 会把有序列表拦腰截断。**
+  现象：右栏的编号从 `1.` 重新开始，而原版是 `3.`（`zz-t1`、右栏 `1. 半监督`）。
+  原因：`#colbreak()` 是**块级元素**，插在列表中间就把列表切成两个。
+  对策：块内有 `+` / `1.` 时保留 `#block(height: ..., columns()[…])` 外壳，既不摘壳也不插
+  `#colbreak()`，分栏交给块高（§2.1）。硬摘外壳的代价量过：得在断点后补 `#set enum(start: N)` 续号，
+  试过的两条变体（`#colbreak()` 粘在行尾、缩进到项内容列）编号虽然连续，但右栏整体低一行。
+- **摘掉限高又不写 `#colbreak()`，内容会全堆在第一栏。**
+  现象：右栏空着，后续内容全部挤在左栏里。
+  原因：高度变成 auto 之后 `columns()` 是**流式分栏**，不显式分栏就根本不会流向下一栏——静默改版面。
+  对策：摘壳的块每栏之间写 `#colbreak()`，n 栏写 n−1 个；保留外壳的块一个都不写。
+- **摘壳后照抄旧的百分比，图会撑破版面。**
+  现象：原样搬过来的 `height: 40%` 在新写法下溢出或变形。
+  原因：百分比基准从块高 H 变成**页面（栏）内可用高度**，照抄旧值通常偏大。
+  对策：按渲染结果重新标定到不溢出、不变形为止；想占满一栏就改给栏宽比例（`width: 90%`）。
+- **页数变多不一定是改坏了。**
+  现象：摘壳后多出一页，页眉标题与上一页相同，看着像多出一张空页。
+  原因：auto 高度受当页剩余空间限制，装不下就另起一页；而旧写法本来就在**丢内容**
+  （`#block(height: 17em)` 装不下 21 行代码，尾部 4 行被裁在页外）。
+  对策：跟旧版逐页比像素，确认多出来的那页是「内容回来了」的续页。camp 的 `技能-编程环境.typ`
+  有两页正是如此——内容回来了，代价是多一张续页。
+- **`typstyle` 已经把 CRLF 转成了 LF，`--check` 却还在报同一批文件。**
+  现象：还原 CRLF 后，`typstyle --check .` 一直报这 11 个文件待格式化。
+  原因：报的是换行差异，不是内容未格式化；typstyle 无条件把 CRLF 转成 LF。
+  对策：判断「内容是否已格式化」的正确做法是读成文本、以 `newline="\n"` 写临时文件再 `--check`，
+  返回 0 即已格式化。
+- **比对渲染 PDF 会因时间戳误报差异。**
+  现象：内容没变，两份 PDF 比不一致。
+  原因：`/CreationDate`、`/ModDate`、`D:...` 日期字面量、`<xmp:*Date>`、`xmpMM:InstanceID` /
+  `DocumentID` 每次构建都变（Typst 随机生成）。
+  对策：比对前先剔除这些字段，否则一定误报。
+- **`cv40examples/` 的脚本只能经 `code/run_example.py` 跑。**
+  现象：从别的目录直接调用示例脚本，找不到图。
+  原因：这些脚本自身用相对路径 `../../images/…` 取图，依赖 `code/run_example.py` 的
+  `os.chdir(script.parent)`。
+  对策：经 `code/run_example.py` 调用，或自行切到脚本所在目录。
+- **`images/` 不在 git 里，删了不可回滚。**
+  现象：清掉一张图后无法从版本历史恢复。
+  原因：仓库根 `.gitignore` 忽略 `images/` 与 `output/`。
+  对策：删图前先确认没有 `.typ` 引用它；PNG 压缩只走 `python code/oxipng_images.py --apply`
+  （会先备份到 `.tmp/backup-images-oxipng/`，压完逐张比像素）。`oxipng` 只吃 PNG/APNG，
+  批量转 `bmp` / `jpg` 会打断 `image()` 引用，别做。
+- **Windows 编译不带字体路径，中文会缺字。**
+  现象：编译通过，中文却显示成方框或缺字。
+  原因：Typst 默认字体集不含中文字体。
+  对策：`typst compile --font-path "C:/Windows/Fonts" <file>.typ`。
+
+## 7. 参考文件
 
 - `references/packages.md` —— qooklet / touying-quick / theorion 的完整导出符号与配置项
-- `references/syntax.md` —— 高频 Typst 写法与排雷清单
+- `references/syntax.md` —— 高频 Typst 写法、单页容量控制与排雷清单
+
+## 8. 篇幅说明
+
+本文档 351 行 / 估算 ~5.9k token，仍超「5000 token / 500 行」的软门槛。**不拆的理由：剩下的每一节都在写 `.typ` 的当下被读到，拆出去等于每次多开一个文件。**六条硬规则是动笔前的分流依据；§2 的骨架与 §2.1 的分栏块模板每页都要套；§3 的命令与 §5 的检查清单是「做完」的判据；§6 的九条踩坑点动版面时几乎必然命中。查表与一次性的部分已经下沉（§1.1 的包清单、§1.2 的两栏示例、§1.4 的 xlsx 示例、§2.1 的迁移脚本），各节留了指针。**再增内容时优先下沉到 `references/`，不要抬高这一节记下的水位。**

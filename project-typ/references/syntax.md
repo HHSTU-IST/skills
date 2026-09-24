@@ -60,6 +60,22 @@ decks 里最常出问题的是**内容撑破 16:9 单页**。惯用手法：
   12–15pt（含代码）、10–11pt（长代码）。
 - `columns()` 不带参数即两栏；栏宽按 `columns(n, gutter: g)` 现算，别拿两栏的宽度去量三栏块。
 
+### 批量摘壳（旧写法 → 裸 `columns()`）
+
+存量课件从 `#block(height: …, columns()[…])` 摘掉外层，工具在 `code/`：
+
+```bash
+python code/measure_columns_split.py                                         # 实测各块分栏点 -> .tmp/columns-split.json
+python code/unwrap_columns_block.py --splits .tmp/columns-split.json         # 干跑
+python code/unwrap_columns_block.py --splits .tmp/columns-split.json --apply # 落盘
+```
+
+- **含有序列表的块一律跳过**（判据：块内出现 `+` / `1.` 开头的列表项）—— 见上面的「例外」。
+- 不给 `--splits` 时，**没有 `#colbreak()` 的块一律跳过**：固定高度是它唯一的分栏依据，
+  摘壳会整块塌进第一栏，比不改更糟。
+- 分栏点不是猜的：按「可分页单元」切分正文（空行分段、段落若为列表再按同级列表项拆细），
+  量每个前缀在**该块自己的单栏宽**下的自然高度，取第一个装不下的单元。
+
 ## 表格
 
 ```typst
@@ -94,6 +110,8 @@ decks 里最常出问题的是**内容撑破 16:9 单页**。惯用手法：
   caption: "",
 )
 ```
+
+`encoding: none` 是必需的 —— 否则二进制会被当文本解码。
 
 `csv()` 返回「行数组」，每个元素是「列数组」，与 `tableq` 的 `data` 参数形状一致，
 用 `..data.flatten()` 展开成 table 的位置参数。

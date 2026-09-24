@@ -20,6 +20,13 @@ from pathlib import Path
 FRONTMATTER_END = "\n---"
 NAME_RE = re.compile(r"^name:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
 DESC_RE = re.compile(r"^description:", re.MULTILINE)
+TOP_LEVEL_KEY_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_-]*):")
+ALLOWED_FRONTMATTER_KEYS = (
+    "name",
+    "description",
+    "agent_created",
+    "disable-model-invocation",
+)
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 PNG_CRC_LIMIT = 8 * 1024 * 1024
 IHDR_LENGTH = 13
@@ -59,7 +66,7 @@ def json_parse(path: Path) -> list[str]:
 
 
 def skill_frontmatter(path: Path) -> list[str]:
-    """Check the frontmatter is complete and name equals the directory name; else it will not load."""
+    """Check the frontmatter has name == directory name, a description, and no extra keys."""
     if path.name != "SKILL.md":
         return []
     source, problems = _read_text(path)
@@ -84,6 +91,23 @@ def skill_frontmatter(path: Path) -> list[str]:
             )
     if DESC_RE.search(block) is None:
         found.append("frontmatter is missing description")
+    found.extend(_extra_frontmatter_keys(block))
+    return found
+
+
+def _extra_frontmatter_keys(block: str) -> list[str]:
+    """Flag top-level keys outside the allowed set; extra keys drift out of date silently.
+
+    Only the keys themselves are judged, not the indented list items under them.
+    """
+    allowed = ", ".join(ALLOWED_FRONTMATTER_KEYS)
+    found: list[str] = []
+    for line in block.splitlines():
+        match = TOP_LEVEL_KEY_RE.match(line)
+        if match is not None and match.group(1) not in ALLOWED_FRONTMATTER_KEYS:
+            found.append(
+                f"frontmatter key {match.group(1)!r} is not allowed; allowed: {allowed}"
+            )
     return found
 
 

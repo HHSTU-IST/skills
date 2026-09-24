@@ -5,9 +5,12 @@
 
 1. 身份：包内**恰好一个**配置，且文件名 == `DEFAULT_CONFIG_NAME`；
    `SKILL.md` frontmatter `name` == `SKILL_NAME` == `meta.skill_name`；
+   frontmatter 只写 `name` / `description`（外加平台键 `agent_created` /
+   `disable-model-invocation`）——展示字段与 `version` 都是启动时的冗余注入；
 2. 编辑器 schema：`$schema` 指向包内真实存在的 JSON Schema，且配置满足其 `required`；
-3. 文档 ↔ 配置：`SKILL.md` 中出现的取值必须与 JSON 一致（版本 / 约束 / 时间
+3. 文档 ↔ 配置：`SKILL.md` 中出现的取值必须与 JSON 一致（约束 / 时间
    分配 / 词性分组 / 词汇量 / 等级标签 / 提问编排 / 话题机制）；
+   版本号反过来——唯一真源是配置 `meta.version`，`SKILL.md` 不许再写一份；
 4. 内容纯度：包内不得出现其它语言的配置文件名（防止误拷他语言资产）。
 
 任一失败即非零退出。
@@ -28,6 +31,20 @@ from corner_config import (
     assets_dir,
     skill_root,
 )
+
+# 有序元组：成员判定用它，报错文案里的顺序也用它
+FRONTMATTER_KEYS = ("name", "description", "agent_created", "disable-model-invocation")
+
+
+def frontmatter_keys(md: str) -> list[str]:
+    """frontmatter 块的顶层键；没有 frontmatter 时返回空表。
+
+    只认顶格键——折叠块（如 `description: >`）里的缩进行不算键。
+    """
+    match = re.match(r"^---[ \t]*\r?\n(.*?)\r?\n---", md, re.DOTALL)
+    if not match:
+        return []
+    return re.findall(r"^([A-Za-z][A-Za-z0-9_-]*):", match.group(1), re.MULTILINE)
 
 
 def config_path() -> Path:
@@ -57,6 +74,14 @@ def audit_identity(cfg: dict) -> list[str]:
     meta_name = cfg["meta"]["skill_name"]
     if meta_name != SKILL_NAME:
         fails.append(f"[{SKILL_NAME}] meta.skill_name={meta_name!r} != {SKILL_NAME!r}")
+
+    extra = [k for k in frontmatter_keys(md) if k not in FRONTMATTER_KEYS]
+    if extra:
+        allowed = " / ".join(FRONTMATTER_KEYS)
+        fails.append(
+            f"[{SKILL_NAME}] {SKILL_MD_NAME} frontmatter 多出键 {', '.join(extra)}"
+            f"（只允许 {allowed}）；版本号请只留在 meta.version"
+        )
     return fails
 
 
@@ -97,13 +122,11 @@ def audit(cfg: dict) -> list[str]:
         if token not in md:
             fails.append(f"{tag} {what}: 配置值 {token!r} 未出现在 {SKILL_MD_NAME}")
 
-    # 1) 版本号：frontmatter version == meta.version
-    m = re.search(r"^version:\s*(\S+)", md, re.MULTILINE)
-    fm_ver = m.group(1) if m else "<none>"
-    if fm_ver != cfg["meta"]["version"]:
-        fails.append(
-            f"{tag} 版本不一致: frontmatter {fm_ver} != meta.version {cfg['meta']['version']}"
-        )
+    # 1) 版本号：唯一真源是配置 meta.version（frontmatter 已不再写一份），
+    #    没有第二处可对照，就自证形态。
+    ver = str(cfg["meta"]["version"])
+    if not re.fullmatch(r"\d+\.\d+\.\d+", ver):
+        fails.append(f"{tag} meta.version={ver!r} 不是 X.Y.Z 形态")
 
     # 2) meta
     need(cfg["meta"]["brief_filename"], "meta.brief_filename")

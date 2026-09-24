@@ -1,17 +1,13 @@
 ---
 name: anchor-spanish
-version: 1.4.0
 description: >
   交互式西班牙语角主持资料生成器，面向「≤10 人、90 分钟」固定规格的**平等圆桌讨论**。每次调用按序提问 4 个问题：核心一级语法点（最多 2 个）、核心二级语法点（据一级动态展示）、DELE 等级、参与人数；话题从题库选择 / 随机一个 / 自定义输入。随后生成一页沉浸式西文主持脚本：主持词穿插 30 个按话题分 3 部分递进、带 DELE 语法等级标注的讨论问题；并按词性分类生成生词表。触发词：西班牙语角、西语角、Spanish corner、主持西语角、西班牙语口语、西班牙语讨论、西班牙语话题、西班牙语会话。
-display_name: "西班牙语角主持助手"
-display_name_en: "Spanish Corner Host"
-description_zh: "每周西班牙语角主持资料生成"
-description_en: "Generate weekly Spanish conversation-circle host kit for ≤10 people / fixed 90 min, egalitarian round-table (no tutoring, no grouping, no homework): sequential 4-question intake (L1 grammar points ≤2, L2 derived, DELE level, group size), auto-recommended topic, one-page immersive-Spanish host script with 30 DELE-tagged questions woven in, POS-grouped vocab. Output to docs/es-<topic>.md."
-visibility: "public"
 agent_created: true
 ---
 
 # 西班牙语角主持助手（Spanish Corner Host）
+
+**技能类型**：混合型 —— 硬约束管「这不做什么」（平等圆桌、仅西语、固定 90 分钟规格），工序管「按序 4 问再产出」的 intake 与生成工作流。
 
 为每周西班牙语角生成一套**可直接朗读/使用**的主持材料。交互式：先问清楚本次要练什么，再产出。
 
@@ -25,58 +21,19 @@ agent_created: true
 - **水平范围**：B1–C2（含「混合（B1–C2）」），不出现 A1 / A2。
 - **产出物**：单页 Markdown 主持脚本，路径模板见 `style.output_path_template`（`docs/es-{topic}.md`）。
 
-## 2. 技能结构与运行时架构
+## 2. 技能包结构与运行
 
-### 2.1 标准目录布局
-
-本技能包遵循 skill-creator 标准结构：自包含（脚本、参考文档、数据资产齐备，只服务西班牙语），可整体复制到 `~/.workbuddy/skills/` 使用。
-
-```text
-anchor-spanish/
-├── SKILL.md                           工作流正文（本文件）
-├── scripts/                           确定性代码（仅 stdlib，不调用 LLM）
-│   ├── corner_config.py               本包解析层：JSON → SkillConfig + 查询 API + 身份常量
-│   ├── corner_skill.py                skill 主体：intake 状态机 + 简报导出
-│   └── corner_audit.py                一致性守卫：schema / 身份 / 文档 ↔ 配置 / 纯度
-├── references/
-│   └── corner-architecture.md         字段 schema 与接口契约（按需查阅）
-└── assets/
-    ├── es-corner-config.json          唯一数据源（可选项 + 提问编排 + 风格 + i18n）
-    └── corner-config.schema.v1.json   配置的 JSON Schema（编辑器补全 / 校验，跨包一致）
-```
-
-运行命令（在技能包根目录执行）：
+本包是**自包含技能包**（skill-creator 标准结构）：脚本、参考文档、数据资产齐备，只服务西班牙语，可整体复制到 `~/.workbuddy/skills/` 使用。标准布局、各文件的职责边界、运行时管线（谁解析、谁收集、谁产出）与顶层字段的消费方，都在 `references/corner-architecture.md`（§0 / §1.6，本包实例取值见 §5）；本节只留跑得起来的那部分。
 
 ```bash
+# 在技能包根目录执行
 python scripts/corner_config.py          # 加载并校验 assets/es-corner-config.json
 python scripts/corner_skill.py           # 驱动 intake 并导出简报
 python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 / 纯度审计
 ```
 
-### 2.2 运行时管线（谁负责什么）
-
-```text
-assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风格 + i18n 文案）
-        │
-        ▼  scripts/corner_config.py（本包解析层，仅 stdlib，不硬编码任何文案）
-   SkillConfig 类型化对象 + 查询 API
-        │
-        ▼  scripts/corner_skill.py（skill 主体，驱动 intake 状态机）
-   es-corner-brief.md（Markdown 简报，落盘到当前工作目录）
-        │
-        ▼  本 skill（读入简报）
-   docs/es-<topic>.md（最终主持脚本）
-```
-
-| 环节                           | 职责                                             | 不做什么                     |
-| ------------------------------ | ------------------------------------------------ | ---------------------------- |
-| `assets/es-corner-config.json` | 存所有可选项与文案                               | —                            |
-| `scripts/corner_config.py`     | 解析、校验、派生（推荐话题、提问负载、简报渲染） | 不调用 LLM、不硬编码任何文案 |
-| `scripts/corner_skill.py`      | 按 `question_plan` 逐题收集、导出简报            | 不生成内容                   |
-| `scripts/corner_audit.py`      | 校验 schema 引用、包身份与本文件 ↔ 配置取值      | 不改任何文件                 |
-| 本 skill                       | 读简报 → 产出西文主持脚本                        | 不重新询问已收集的参数       |
-
-> 字段结构与接口契约、本包实例取值详见 **`references/corner-architecture.md`**（§5）。
+`corner_audit.py` 是唯一的机械闸门，四段依次跑、任一段失败即非零退出：schema 引用 → 包身份 →
+本文件 ↔ 配置取值 → 内容纯度。
 
 ## 3. 交互契约（intake）
 
@@ -229,20 +186,3 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 | 结语（Cierre）                     | 11.1% | 10   |
 
 > 规格固定为 **≤10 人 / 90 分钟** 的平等圆桌，**不含辅导 / 教学环节、无分组讨论**。小班（2–4 人）可加重讨论、压缩开场；大班（9–10 人）可改为全员轮流发言。
-
-## 附录 B · 配置字段速查
-
-| JSON 顶层键          | 内容                                                        | 消费方 / 对应章节                  |
-| -------------------- | ----------------------------------------------------------- | ---------------------------------- |
-| `meta`               | 技能名、版本、简报文件名                                    | `scripts/corner_skill.py` 落盘命名 |
-| `constraints`        | 人数、时长、各题上限、分组大小                              | 校验 / §3 分组规则                 |
-| `grammar_points`     | 一级章节 → 二级条目树                                       | Q1、Q2                             |
-| `participant_levels` | 水平档位（含「混合」）                                      | Q3                                 |
-| `scales`             | 规模（人数区间 + 总时长）                                   | Q5、时间分配校验                   |
-| `topic_dimensions`   | 三个通用生活维度                                            | 附录 A.1 话题生成参考              |
-| `topic_pool`         | 话题题库（可选题库 / 🎲 随机一个 / 自定义输入）             | Q4                                 |
-| `time_allocation`    | 环节占比与分钟数                                            | 简报、附录 A.5                     |
-| `vocab_targets`      | 各水平词汇量区间                                            | 简报、§4.4                         |
-| `exam`               | DELE 等级、标注规则、rubric                                 | 简报、§4.3                         |
-| `question_plan`      | 提问编排（顺序 / 类型 / 依赖 / 上限 / 模式）                | intake 状态机、§3                  |
-| `style`              | 纯西文、无 `---`、输出路径模板、POS 分组、阶段名、i18n 文案 | 简报渲染、§5                       |
