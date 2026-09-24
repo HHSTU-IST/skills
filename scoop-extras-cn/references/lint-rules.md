@@ -55,6 +55,9 @@ Warnings do not affect installation but they slow down maintenance. With
 - **E003 / E004**: add what is missing. `version` must be a string (`"1.2"`).
   `edrawmax8` and `mpv.net-cm` currently fail this: neither declares a
   `checkver` or an `autoupdate`, so Excavator can never refresh them.
+  `cajviewer` and `cnkiexpress` joined that set on the same terms: the runner
+  cannot open `cajviewer.cnki.net` at all (`gotchas.md`), and no reachable page
+  publishes either version, so the probe was pure noise in every run.
 - **E005**: `github` and `sourceforge` need no `regex`; `url` and `script` must
   have one, and a misspelled key name is reported here too. A bare string is
   the shorthand for "scrape the homepage": Scoop falls back to `homepage` when

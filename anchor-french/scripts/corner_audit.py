@@ -13,7 +13,8 @@
    版本号反过来——唯一真源是配置 `meta.version`，`SKILL.md` 不许再写一份；
 4. 内容纯度：包内不得出现其它语言的配置文件名（防止误拷他语言资产）。
 
-任一失败即非零退出。
+任一失败即非零退出；失败一律以一条 `✗` 报出，不抛栈 —— 读不了的文件（非 UTF-8 /
+不可读）与不合法的配置 JSON 也算一类发现。
 """
 
 from __future__ import annotations
@@ -28,7 +29,9 @@ from corner_config import (
     LANG,
     SKILL_MD_NAME,
     SKILL_NAME,
+    ConfigError,
     assets_dir,
+    read_text_or_error,
     skill_root,
 )
 
@@ -52,6 +55,22 @@ def config_path() -> Path:
     return assets_dir() / DEFAULT_CONFIG_NAME
 
 
+def _read(path: Path, what: str) -> tuple[str, str]:
+    """读文本；失败时返回 `("", 原因)`，由调用方折成一条 `✗`。
+
+    审计器不抛栈 —— 「这个文件读不了」本身就是要报出来的一条发现。失败必须
+    立即返回：空串参与后续逐条比对会连带出一串假发现。
+
+    返回 `str` 而不是 `str | None` 是刻意的：类型检查器推不出「`err` 非空 ⇒
+    文本为 None」，写成可选类型会让下游十几个调用点集体报 `str | None` 不接受。
+    代价是失败时文本为空串 —— **调用方必须先看 `err`**。
+    """
+    try:
+        return read_text_or_error(path, what), ""
+    except ConfigError as exc:
+        return "", str(exc)
+
+
 def audit_identity(cfg: dict) -> list[str]:
     """包身份校验：一个配置、文件名正确、SKILL.md 与 meta 的名称一致。"""
     fails: list[str] = []
@@ -64,7 +83,9 @@ def audit_identity(cfg: dict) -> list[str]:
             return fails  # 缺本包配置，后续检查无意义
 
     md_path = skill_root() / SKILL_MD_NAME
-    md = md_path.read_text(encoding="utf-8")
+    md, err = _read(md_path, "技能包正文")
+    if err:
+        return [*fails, f"[{SKILL_NAME}] {err}"]
     m = re.search(r"^name:\s*(\S+)", md, re.MULTILINE)
     fm_name = m.group(1) if m else "<none>"
     if fm_name != SKILL_NAME:
@@ -100,8 +121,11 @@ def audit_schema(cfg: dict) -> list[str]:
     target = (config_path().parent / ref).resolve()
     if not target.is_file():
         return [f"{tag} $schema 指向的文件不存在: {ref!r}"]
+    text, err = _read(target, "$schema 目标")
+    if err:
+        return [f"{tag} {err}"]
     try:
-        sch = json.loads(target.read_text(encoding="utf-8"))
+        sch = json.loads(text)
     except json.JSONDecodeError as exc:
         return [f"{tag} $schema 目标不是合法 JSON: {ref!r}（{exc.msg}）"]
     if not isinstance(sch, dict) or not sch.get("title"):
@@ -114,8 +138,10 @@ def audit_schema(cfg: dict) -> list[str]:
 
 def audit(cfg: dict) -> list[str]:
     """本包「SKILL.md ↔ 配置」逐项比对。"""
-    md = (skill_root() / SKILL_MD_NAME).read_text(encoding="utf-8")
     tag = f"[{SKILL_NAME}/{LANG}]"
+    md, err = _read(skill_root() / SKILL_MD_NAME, "技能包正文")
+    if err:
+        return [f"{tag} {err}"]
     fails: list[str] = []
 
     def need(token: str, what: str) -> None:
@@ -222,7 +248,10 @@ def audit(cfg: dict) -> list[str]:
             continue
         if ".rumdl_cache" in f.as_posix():
             continue
-        text = f.read_text(encoding="utf-8")
+        text, err = _read(f, "包内文件")
+        if err:
+            fails.append(f"{tag} {err}")
+            continue
         rel = f.relative_to(skill_root()).as_posix()
         for name in sorted(set(re.findall(r"[\w-]+-corner-config\.json", text))):
             if name != DEFAULT_CONFIG_NAME:
@@ -233,28 +262,40 @@ def audit(cfg: dict) -> list[str]:
     return fails
 
 
-def main() -> int:
-    """三段闸门：schema（引用 + 必填顶层键）→ 身份 → 文档 ↔ 配置；任一失败即停。"""
-    if not config_path().is_file():
-        print(f"{SKILL_NAME} ({LANG}): 配置缺失")
-        print(f"  ✗ 缺少 {config_path().as_posix()}")
-        return 1
-    cfg = json.loads(config_path().read_text(encoding="utf-8"))
-    if not isinstance(cfg, dict):
-        print(f"{SKILL_NAME} ({LANG}): 1 处不一致")
-        print(f"  ✗ 配置顶层必须是 JSON 对象，实际为 {type(cfg).__name__}")
-        return 1
-    fails: list[str] = []
-    for stage in (audit_schema, audit_identity, audit):
-        fails = stage(cfg)
-        if fails:
-            break
+def _report(fails: list[str]) -> int:
+    """统一收尾：打印 `OK` 或逐条 `✗`，返回退出码（0 = 干净）。"""
     print(
         f"{SKILL_NAME} ({LANG}): {'OK' if not fails else str(len(fails)) + ' 处不一致'}"
     )
     for line in fails:
         print("  ✗", line)
     return 1 if fails else 0
+
+
+def main() -> int:
+    """三段闸门：schema（引用 + 必填顶层键）→ 身份 → 文档 ↔ 配置；任一失败即停。"""
+    try:
+        cfg_path = config_path()
+    except ConfigError as exc:
+        return _report([str(exc)])
+    if not cfg_path.is_file():
+        print(f"{SKILL_NAME} ({LANG}): 配置缺失")
+        print(f"  ✗ 缺少 {cfg_path.as_posix()}")
+        return 1
+    try:
+        cfg = json.loads(read_text_or_error(cfg_path, "配置文件"))
+    except ConfigError as exc:
+        return _report([str(exc)])
+    except json.JSONDecodeError as exc:
+        return _report([f"配置不是合法 JSON（{exc.msg}）"])
+    if not isinstance(cfg, dict):
+        return _report([f"配置顶层必须是 JSON 对象，实际为 {type(cfg).__name__}"])
+    fails: list[str] = []
+    for stage in (audit_schema, audit_identity, audit):
+        fails = stage(cfg)
+        if fails:
+            break
+    return _report(fails)
 
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ __all__ = [
     "TimeSlot",
     "assets_dir",
     "load_config",
+    "read_text_or_error",
     "skill_root",
 ]
 
@@ -76,6 +77,25 @@ def skill_root() -> Path:
 def assets_dir() -> Path:
     """返回资产目录 `<skill>/assets/`（唯一配置 DEFAULT_CONFIG_NAME 所在处）。"""
     return skill_root() / ASSETS_DIRNAME
+
+
+def read_text_or_error(path: Path, what: str) -> str:
+    """以 UTF-8 读文本；读不了时统一抛 `ConfigError`。
+
+    包内所有读文件都走这里，把失败面收成一种异常：裸 `read_text` 会抛 `OSError`
+    （目录 / 权限 / 文件已删）或 `UnicodeDecodeError`（非 UTF-8 字节），调用方按
+    「任何失败都是 ConfigError」的契约只捕捉后者就会漏接。
+
+    两个 `except` 分开写：既为给出可区分的报错，也避开一个格式化器陷阱 ——
+    `target-version = "py314"` 下，**不带** `as` 的 `except (A, B):` 会被改写成
+    PEP 758 的裸形式 `except A, B:`，那种语法只在 3.14+ 能解析。
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ConfigError(f"{what}读取失败: {path}（{exc}）") from exc
+    except UnicodeDecodeError as exc:
+        raise ConfigError(f"{what}不是 UTF-8 文本: {path}（{exc}）") from exc
 
 
 # ───────────────────────────── 值对象 ─────────────────────────────
@@ -742,7 +762,7 @@ def load_config(path: str | Path | None = None) -> SkillConfig:
     """输入：JSON 文件路径；输出：校验后的 SkillConfig。
 
     解析步骤：读文件 → json.loads → 结构校验 → 归一化为 dataclass。
-    任何结构/取值错误统一包装为 ConfigError。
+    任何读取 / JSON / 结构 / 取值错误统一包装为 ConfigError。
 
     `path=None` 时固定读取本包资产目录下的 `DEFAULT_CONFIG_NAME`
     （即 `<skill>/assets/` 下唯一那份配置），不做任何跨语言探测 ——
@@ -754,7 +774,7 @@ def load_config(path: str | Path | None = None) -> SkillConfig:
         raise ConfigError(f"配置文件不存在: {path}")
 
     try:
-        raw: dict = json.loads(path.read_text(encoding="utf-8"))
+        raw: dict = json.loads(read_text_or_error(path, "配置文件"))
     except json.JSONDecodeError as e:
         raise ConfigError(f"JSON 解析失败: {e}") from e
 

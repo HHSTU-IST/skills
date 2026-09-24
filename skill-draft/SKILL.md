@@ -105,8 +105,9 @@ python <this skill dir>/scripts/verify.py --list
 
 Residual problems come in two kinds.
 
-- The machine cannot fix them: real type errors, and the class of `oxlint`
-  warnings that has no autofix. Fix those by hand.
+- The machine cannot fix them: real type errors, `ruff` violations with no
+  autofix such as `PERF401`, and the class of `oxlint` warnings that has no
+  autofix. Fix those by hand.
 - The tool already fixed them: nothing to do, the script has written the
   result to disk.
 
@@ -256,6 +257,14 @@ as soon as a new one shows up — this is where the density is.
 - `ruff check` enables 413 rules by default, including `PLW`-style ones,
   far beyond the classic `E4/E7/E9/F`. Verified with `--isolated`: this is
   the built-in default set of 0.16.x.
+- **A bare `ruff check` stops being a check once the host config sets
+  `fix`.** A repo whose `pyproject.toml` carries `fix = true` or
+  `fix-only = true` — this one carries both — turns it into a silent
+  rewriter: exit 0, empty output, and the violations drop out of the
+  report. `--no-fix` closes only the first half, because `fix-only` is a
+  separate key that keeps swallowing unfixable ones. Hence the verify
+  stage's `--no-fix --no-fix-only`; drop either flag and the gate can no
+  longer fail on a violation that has no autofix.
 - `ty check --fix` autofixes very little; a non-zero return is normal and
   the real fixes are manual. ty resolves third-party packages from the
   project root's `pyproject.toml` and `.venv` by default; when a package's
