@@ -195,7 +195,7 @@ emitted; and any change under `bin/`, `scripts/` or `.github/`.
 
 ## 7. Gotchas
 
-Fourteen so far, one per thing this bucket, its CI or the tooling has pulled
+Twenty so far, one per thing this bucket, its CI or the tooling has pulled
 on us. **The entries themselves are in `references/gotchas.md`**, written as
 Symptom / Cause / Action; the titles below are its index. Read it before
 hand-fixing a manifest, and add a line there the moment a new one shows up.
@@ -214,6 +214,12 @@ hand-fixing a manifest, and add a line there the moment a new one shows up.
 - **GitHub release assets publish their own sha256 now.**
 - **A locked-down CDN can refuse the CI runner while accepting this machine.**
 - **An `autoupdate.url` without any `hash` crashes Excavator on `Get-Member`.**
+- **A vendor CDN can throttle concurrent fetches, and that breaks a probing checkver.**
+- **A derived package can lag its own main version.**
+- **Version strings on SPA sites must be mined, not scraped.**
+- **An empty `changed` list used to swallow `--readme`.**
+- **`checkver.script` is PowerShell, and it hides two traps.**
+- **Upstream can repack the same version, silently invalidating the hash.**
 
 ## 8. Maintenance
 

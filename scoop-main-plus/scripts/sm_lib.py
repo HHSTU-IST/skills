@@ -497,6 +497,20 @@ def _apply_autoupdate(
     )
 
 
+def _first_download_url(spec: dict) -> str | None:
+    """The first download URL the spec declares, whichever architecture it is.
+
+    Used to recover `owner/repo` when a recipe was handed a download URL but no
+    `repo_url`: Scoop's bare-string `github` checkver never falls back to the
+    download URL, so the builder has to do it (see E012).
+    """
+    for key in ("url", *ARCH_PARAM.values()):
+        value = spec.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
 def _apply_checkver(manifest: OrderedDict, spec: dict) -> None:
     """Emit checkver in one of Scoop's supported shapes.
 
@@ -535,7 +549,20 @@ def _apply_checkver(manifest: OrderedDict, spec: dict) -> None:
         block["reverse"] = spec["checkver_reverse"]
 
     if not block:
-        manifest["checkver"] = "github"
+        # The bare string only works when the homepage is the repository itself,
+        # because that is where Scoop looks; otherwise emit the explicit form so
+        # the check does not depend on `homepage` at all (see E012).
+        if str(spec.get("homepage") or "").startswith("https://github.com/"):
+            manifest["checkver"] = "github"
+            return
+        repo = github_repo_of(_first_download_url(spec))
+        if not repo:
+            raise SmError(
+                "cannot emit checkver: the homepage is not a github.com URL and "
+                "no owner/repo could be derived from the download URL -- pass "
+                "--repo-url (or --checkver-github)"
+            )
+        manifest["checkver"] = OrderedDict([("github", f"https://github.com/{repo}")])
         return
     if list(block.keys()) == ["regex"]:
         # Scoop falls back to $json.homepage when checkver.url is absent, so a
@@ -1066,8 +1093,26 @@ def build_manifest(spec: dict) -> OrderedDict:
 # --------------------------------------------------------------------------
 
 
+def _request_headers(url: str) -> dict[str, str]:
+    """User-Agent, plus a GitHub token when one sits in the environment.
+
+    Unauthenticated api.github.com calls are capped at 60 requests per hour,
+    which a `--all --checkver` sweep blows through; past the cap every
+    GitHub-backed manifest reports "GitHub API returned 403" and looks broken.
+    GITHUB_TOKEN / GH_TOKEN lift the cap and cost nothing when unset.
+    """
+    headers = {"User-Agent": USER_AGENT}
+    if "api.github.com" in url:
+        for name in ("GITHUB_TOKEN", "GH_TOKEN"):
+            token = os.environ.get(name, "").strip()
+            if token:
+                headers["Authorization"] = f"token {token}"
+                break
+    return headers
+
+
 def http_get(url: str, timeout: int = 30) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    request = urllib.request.Request(url, headers=_request_headers(url))
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return response.read()
 
@@ -1075,7 +1120,7 @@ def http_get(url: str, timeout: int = 30) -> bytes:
 def sha256_url(url: str, timeout: int = 120) -> str:
     """Stream the download and compute sha256; the #/fragment anchor is dropped."""
     clean = url.split("#", 1)[0]
-    request = urllib.request.Request(clean, headers={"User-Agent": USER_AGENT})
+    request = urllib.request.Request(clean, headers=_request_headers(clean))
     digest = hashlib.sha256()
     with urllib.request.urlopen(request, timeout=timeout) as response:
         while True:
@@ -1128,8 +1173,29 @@ def _repo_from_manifest(manifest: dict) -> str | None:
     return github_repo_of(manifest.get("homepage"))
 
 
-def _regex_version(pattern: str, text: str) -> str | None:
-    match = re.search(pattern, text)
+def _reverse_flag(value) -> bool:
+    """`checkver.reverse` is spelled either "true" or a JSON boolean; accept both."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return bool(value)
+
+
+def _regex_match(pattern: str, text: str, reverse: bool = False):
+    """The first match, or Scoop's last one when `checkver.reverse` is set.
+
+    Scoop applies the same flag to the regex stage, so a manifest listing many
+    candidates newest-last needs the last match to describe the real version.
+    """
+    if reverse:
+        matches = list(re.finditer(pattern, text))
+        return matches[-1] if matches else None
+    return re.search(pattern, text)
+
+
+def _regex_version(pattern: str, text: str, reverse: bool = False) -> str | None:
+    match = _regex_match(pattern, text, reverse)
     if not match:
         return None
     if "version" in match.re.groupindex:
@@ -1171,12 +1237,22 @@ def detect_latest(manifest: dict, name: str = "") -> tuple[str | None, str]:
         if not homepage:
             return None, "bare-string checkver needs a homepage to scrape"
         checkver = OrderedDict([("url", homepage), ("regex", checkver)])
+    bare_github_mismatch = ""
     if isinstance(checkver, str):
         repo = _repo_from_manifest(manifest)
         if not repo:
             return (
                 None,
                 "checkver is github but no repo can be derived from url/homepage",
+            )
+        # This emulation is deliberately more forgiving than Scoop, which refuses
+        # to derive the repo from the download URL -- so say so out loud, or the
+        # probe reports "up to date" for a manifest whose CI job still fails.
+        if not str(manifest.get("homepage") or "").startswith("https://github.com/"):
+            bare_github_mismatch = (
+                "; but checkver is the bare string 'github' while homepage is not "
+                "github.com, so bin/checkver.ps1 fails on this manifest -- the repo "
+                "above came from the download URL, which Scoop does not use (E012)"
             )
         checkver = OrderedDict([("github", f"https://github.com/{repo}")])
     if not isinstance(checkver, dict):
@@ -1208,7 +1284,7 @@ def detect_latest(manifest: dict, name: str = "") -> tuple[str | None, str]:
             if release.get("draft") or release.get("prerelease"):
                 continue
             tag = release.get("tag_name") or ""
-            return tag.lstrip("vV"), f"github releases of {repo}"
+            return tag.lstrip("vV"), f"github releases of {repo}{bare_github_mismatch}"
         return None, f"{repo} has no usable stable release"
 
     try:
@@ -1228,9 +1304,11 @@ def detect_latest(manifest: dict, name: str = "") -> tuple[str | None, str]:
             return None, f"jsonpath {checkver['jsonpath']} matched nothing"
         body = str(value)
 
+    reverse = _reverse_flag(checkver.get("reverse"))
+
     version = None
     if checkver.get("regex"):
-        version = _regex_version(checkver["regex"], body)
+        version = _regex_version(checkver["regex"], body, reverse)
         if version is None:
             return None, f"regex {checkver['regex']} matched nothing"
     else:
@@ -1238,7 +1316,11 @@ def detect_latest(manifest: dict, name: str = "") -> tuple[str | None, str]:
 
     if checkver.get("replace"):
         template = checkver["replace"]
-        match = re.search(checkver["regex"], body) if checkver.get("regex") else None
+        match = (
+            _regex_match(checkver["regex"], body, reverse)
+            if checkver.get("regex")
+            else None
+        )
         if match and match.groupdict():
             for key, value in match.groupdict().items():
                 template = template.replace("${" + key + "}", value or "")
@@ -1285,6 +1367,14 @@ RULES = OrderedDict(
                 "hash is not a 64-char lowercase sha256 and no autoupdate hash source is given",
             ),
         ),
+        (
+            "E012",
+            (
+                "error",
+                "checkver is the bare string 'github' but homepage is not a github repository",
+            ),
+        ),
+        ("E013", ("error", "a checkver field has a type Scoop's schema rejects")),
         (
             "W101",
             (
@@ -1618,7 +1708,25 @@ def lint_manifest_text(
     # E005 checkver / E006 autoupdate
     checkver = manifest.get("checkver")
     if isinstance(checkver, str):
-        if checkver.lower() != "github" and not manifest.get("homepage"):
+        if checkver.lower() == "github":
+            # Scoop reads the bare string as "the homepage is the repository":
+            # it refuses to fall back to the download URL, so a non-github
+            # homepage makes it probe <homepage>/releases/latest instead.
+            if not str(manifest.get("homepage") or "").startswith(
+                "https://github.com/"
+            ):
+                findings.append(
+                    Finding(
+                        "E012",
+                        "checkver is the bare string 'github' but homepage is not a "
+                        "github repository; Scoop reports 'checkver expects the "
+                        "homepage to be a github repository' and then scrapes "
+                        "<homepage>/releases/latest -- use "
+                        '{"github": "https://github.com/<owner>/<repo>"}',
+                        "checkver",
+                    )
+                )
+        elif not manifest.get("homepage"):
             # Any other string is the regex shorthand, which Scoop runs against
             # the homepage -- so without one there is nothing to scrape.
             findings.append(
@@ -1638,6 +1746,61 @@ def lint_manifest_text(
                 Finding(
                     "E005",
                     "checkver has unknown keys: " + ", ".join(unknown),
+                    "checkver",
+                )
+            )
+        # E013 the field types Scoop's schema actually accepts
+        string_fields = (
+            "github",
+            "url",
+            "jsonpath",
+            "xpath",
+            "regex",
+            "replace",
+            "useragent",
+        )
+        findings.extend(
+            Finding(
+                "E013",
+                f"checkver.{key} must be a string, found "
+                f"{type(checkver[key]).__name__}",
+                "checkver",
+            )
+            for key in string_fields
+            if key in checkver and not isinstance(checkver[key], str)
+        )
+        if "sourceforge" in checkver and not isinstance(
+            checkver["sourceforge"], (str, dict)
+        ):
+            findings.append(
+                Finding(
+                    "E013",
+                    "checkver.sourceforge must be a string or an object",
+                    "checkver",
+                )
+            )
+        if "script" in checkver:
+            script_value = checkver["script"]
+            if not (
+                isinstance(script_value, str)
+                or (
+                    isinstance(script_value, list)
+                    and all(isinstance(line, str) for line in script_value)
+                )
+            ):
+                findings.append(
+                    Finding(
+                        "E013",
+                        "checkver.script must be a string or a list of strings",
+                        "checkver",
+                    )
+                )
+        if "reverse" in checkver and not isinstance(checkver["reverse"], bool):
+            findings.append(
+                Finding(
+                    "E013",
+                    "checkver.reverse must be a JSON boolean -- the string 'true' "
+                    "behaves at runtime but the schema gate rejects it",
                     "checkver",
                 )
             )

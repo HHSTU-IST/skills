@@ -60,9 +60,10 @@ micromamba run -n <选定的环境> python <脚本>
 ruff format code python --exclude "*.ipynb"
 ruff format code python --check --exclude "*.ipynb"   # 复核用
 
-# 2) lint —— 只看问题（根配置 fix=true，不加 --no-fix 会直接改写文件）
+# 2) lint —— 只看问题。根配置同时设了 fix 与 fix-only，只加 --no-fix 仍会改写文件，
+#    必须两个都带才是唯一只读组合（实测：--no-fix-only 单独用也会落盘）
 # 必须排除 notebook —— ruff 原生会解析 .ipynb，本技能范围仅 .py
-ruff check code python --no-fix --exclude "*.ipynb"
+ruff check code python --no-fix --no-fix-only --exclude "*.ipynb"
 
 # 3) 类型检查 —— 必须借 micromamba 指定环境
 micromamba run -n <选定的环境> ty check code python

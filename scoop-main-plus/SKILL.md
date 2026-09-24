@@ -2,7 +2,7 @@
 name: scoop-main-plus
 description: >
   Generate, update and lint Scoop manifests in the main-plus bucket
-  (bucket/*.json): scaffold from recipes, bump version, rehash, lint 23 rules.
+  (bucket/*.json): scaffold from recipes, bump version, rehash, lint 25 rules.
   Triggers: scoop manifest, generate/update/lint manifest, checkver, autoupdate,
   hash, version bump, Excavator, main-plus, scoop-main-plus.
 agent_created: true
@@ -27,7 +27,7 @@ Package layout:
   repo round-trip, lint baseline
 - `references/manifest-fields.md` manifest field reference (this repo's rules)
 - `references/recipes.md` when each of the 18 recipes applies, and what it emits
-- `references/lint-rules.md` the 23 rules and how to fix each one
+- `references/lint-rules.md` the 25 rules and how to fix each one
 - `references/coverage.md` the upstream survey behind the catalog, and the gaps
 - `assets/recipes.jsonc` the single source of truth for recipes. The `.jsonc`
   suffix is deliberate -- see the hard constraints below
@@ -81,7 +81,7 @@ scripts is version-gated, so an older 3.x still runs them.
 | :--- | :--- | :--- | :--- |
 | **generate** | `gen` | Build a manifest from a recipe and fill it in, optionally sync README | `--list-recipes`, `--from`, `--recipe`, `--fetch-hash`, `--hash-from-file`, `--language`, `--flat-url`, `--dry-run` |
 | **update** | `upd` | Edit fields / bump version + rewrite URLs / recompute hashes / probe upstream | `--name`, `--all`, `--set`, `--unset`, `--version`, `--rehash`, `--readme`, `--checkver [--apply]` |
-| **lint** | `check` | Run the 23 rules, repair formatting | `--name`, `--json`, `--strict`, `--fix-format`, `--rules` |
+| **lint** | `check` | Run the 25 rules, repair formatting | `--name`, `--json`, `--strict`, `--fix-format`, `--rules` |
 
 Shared option `--repo <bucket repo root>`. Without it the script walks up from
 the cwd looking for a directory holding both `bucket/` and `README.md`, and
@@ -162,6 +162,8 @@ python scripts/scoop_manifest.py upd --all --checkver --apply --rehash  # sweep
 `--checkver` understands the `github` string, `{"github": ...}`, bare-string
 regex (scraped from `homepage`), `{"url", "regex"}`, `{"url", "jsonpath",
 "regex", "replace"}`, `{"url", "xpath", ...}` and `{"sourceforge": ...}`.
+`"reverse": true` is honoured, so a manifest whose candidates run newest-last
+reports the **last** match instead of the first.
 **The `{"script": ...}` form cannot be probed offline**; use `bin/checkver.ps1`
 instead (section 7).
 
@@ -247,6 +249,24 @@ a line as soon as a new one shows up -- this is where the density is.
   Cause: the script form needs a live Scoop environment, which the command does
   not have.
   Action: run `bin/checkver.ps1` instead.
+- **`"checkver": "github"` reads `homepage`, never the download URL.**
+  Symptom: `ERROR <app> checkver expects the homepage to be a github
+  repository`, then a 404 against `<homepage>/releases/latest`.
+  Cause: the string form takes the repo from `homepage` alone, so a project
+  whose homepage is a Pages site or its own domain breaks it -- `moviebox` and
+  `music-dl` both did, while `lint` stayed green because this skill's probe
+  falls back to the repository in the download URL.
+  Action: use `{"github": "https://github.com/o/r"}` and leave `homepage`
+  pointing at the real site.
+- **A `checkver` that scrapes an HTML page can go quiet.**
+  Symptom: `couldn't match '<regex>' in <url>` -- no update, no 404, no clue.
+  Cause: the page now renders its list client-side, so the version never
+  reaches the HTML; `anaconda.org/conda-forge/micromamba/files` did this to
+  `micromamba`.
+  Action: find the JSON endpoint behind it. For anaconda that is
+  `api.anaconda.org/release/<owner>/<package>/latest`, which lists only the
+  newest release's distributions and is roughly 180x smaller than the full
+  file listing.
 - **The self-check measures the installed bucket, not this package.**
   Symptom: `sm_selftest.py` fails on a manifest you have never touched.
   Cause: the round-trip and lint-baseline groups read
@@ -276,6 +296,24 @@ a line as soon as a new one shows up -- this is where the density is.
   `autoupdate` points at. `typst-ts` installs from a `.zip` while its
   `autoupdate` points at a `.tar.gz`.
   Action: check that pair by hand.
+- **A release that renames its assets breaks `autoupdate`, and no rule sees it.**
+  Symptom: Excavator reports `URL ... is not valid`, then
+  `ERROR Could not update <app>, hash for <file> failed!`.
+  Cause: the manifest's `autoupdate.url` still spells the old asset name, so
+  the built URL 404s. `sttr` renamed `sttr_<version>_windows_amd64.zip` to
+  `sttr_Windows_x86_64.zip` at 0.2.28 and the manifest sat at 0.2.24.
+  Action: compare the URL against the release's asset list
+  (`gh api repos/<o>/<r>/releases`), then rehash from the same release. Read
+  the new name literally -- do not carry `$version` into the file name.
+- **Upstreams that publish tag-only releases make `checkver: "github"` chase
+  a version with no binaries.**
+  Symptom: Excavator bumps the version, then `Could not update <app>`.
+  Cause: `github` reads the newest release, whatever it contains; `shimmy`
+  shipped v2.6.2-v2.6.4 with an empty asset list, so only v2.6.1 was
+  installable.
+  Action: point `checkver.url` at the releases API and match on an asset URL
+  instead of the tag -- `/download/v([\d.]+)/<asset>\\.exe` picks the newest
+  release that actually ships the file.
 
 ## 8. Maintenance
 

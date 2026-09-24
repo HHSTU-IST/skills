@@ -25,6 +25,8 @@ Error-level findings break `scoop install` or fail CI, making `lint` exit 1.
 | E009 | Error    | file name does not match ^[a-z0-9][a-z0-9-]*$                                                          |
 | E010 | Error    | script matches a dangerous pattern (Invoke-Expression / -EncodedCommand / plaintext credentials, etc.) |
 | E011 | Error    | hash is not a 64-char lowercase sha256 and no autoupdate hash source is given                          |
+| E012 | Error    | checkver is the bare string 'github' but homepage is not a github repository                           |
+| E013 | Error    | a checkver field has a type Scoop's schema rejects                                                     |
 
 ## Warnings (W)
 
@@ -70,6 +72,17 @@ Warnings do not affect installation but they slow down maintenance. With
 - **E011**: `hash` must be 64 lowercase hex chars or an equally long array.
   Scoop rejects an `"md5:..."` prefix; `voov-meeting` currently has one.
   If Excavator should fill it, declare a `hash` source in `autoupdate`.
+- **E012**: `"checkver": "github"` reads `homepage`, so it only holds when the
+  homepage *is* `https://github.com/<owner>/<repo>`. Otherwise switch to the
+  object form `{"github": "..."}` and leave `homepage` where it was.
+  `moviebox` and `music-dl` both shipped this mistake.
+- **E013**: Scoop type-checks these fields even though JSON would not:
+  `github`, `url`, `jsonpath`, `xpath`, `regex`, `replace` and `useragent` are
+  strings, `sourceforge` is a string or an object, and `script` is a string or
+  an array of strings. `reverse` must be a JSON boolean: the string `"true"`
+  still behaves at runtime, because Scoop tests `-eq 'true'`, but `schema.json`
+  types the field as `boolean`, so the CI schema gate rejects the manifest and
+  a local run looks green.
 
 ### W group
 

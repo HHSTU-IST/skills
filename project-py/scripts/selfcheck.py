@@ -52,8 +52,8 @@ COMMAND_RULES: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
     (
         "ruff check",
         "startswith",
-        ("--no-fix", "--exclude"),
-        "check must not rewrite the file",
+        ("--no-fix", "--no-fix-only", "--exclude"),
+        "only --no-fix + --no-fix-only keeps check from rewriting the file",
     ),
     ("ty check", "contains", ("micromamba run -n",), "ty needs the chosen env"),
     (
@@ -168,6 +168,19 @@ def check_docs(source: str) -> list[str]:
     return found
 
 
+def _carried(required: str, line: str, tokens: list[str]) -> bool:
+    """Whether a required fragment is on the line, as a flag where it is one.
+
+    Flags have to be their own token: ``--no-fix`` is a substring of
+    ``--no-fix-only``, yet only the pair stops ``ruff check`` from rewriting
+    files, so a substring test would bless the unsafe command. Multi-word
+    fragments such as ``micromamba run -n`` stay substring matches.
+    """
+    if required.startswith("-") and " " not in required:
+        return required in tokens
+    return required in line
+
+
 def check_commands(source: str) -> list[str]:
     """The mandatory flags are on the commands, not just in the prose beside them."""
     found: list[str] = []
@@ -176,11 +189,12 @@ def check_commands(source: str) -> list[str]:
             line = raw.strip()
             if not line or line.startswith("#"):
                 continue
+            tokens = line.split()
             for probe, mode, required, why in COMMAND_RULES:
                 hit = line.startswith(probe) if mode == "startswith" else probe in line
                 if not hit:
                     continue
-                gaps = [item for item in required if item not in line]
+                gaps = [item for item in required if not _carried(item, line, tokens)]
                 if gaps:
                     found.append(
                         f"SKILL.md: {line!r} is missing {', '.join(gaps)} ({why})"

@@ -106,8 +106,8 @@ the fragment in the URL.
 
 | Form          | Structure                                            | Use when                                                      | Sample in this repo                                |
 | :------------ | :--------------------------------------------------- | :------------------------------------------------------------ | :------------------------------------------------- |
-| string        | `"checkver": "github"`                               | the GitHub repo can be derived from `url` / `homepage`        | 35 of 39, e.g. `choose`, `sttr`                    |
-| github object | `{"github": "https://github.com/o/r"}`               | the homepage is not GitHub but releases are                   | `calepin`, `typst-ts`                              |
+| string        | `"checkver": "github"`                               | `homepage` is the repository itself (`https://github.com/o/r`) | 22 of 40, e.g. `choose`, `sttr`                    |
+| github object | `{"github": "https://github.com/o/r"}`               | the homepage is not GitHub but releases are                   | `calepin`, `moviebox`, `typst-ts`                  |
 | bare regex    | `"checkver": "Version ([\\d.]+)"`                    | the homepage itself lists the version and a regex can read it | none here; 47 upstream (`cacert`)                  |
 | url + regex   | `{"url": ..., "regex": ...}`, optionally `+ replace` | upstream is a website / own CDN / vendor endpoint             | `android-cli`, `docker-completion`, `micromamba`, `n-m3u8dl-re` |
 | jsonpath      | `{"url": ..., "jsonpath": ..., "regex": ...}`        | only an API or rolling builds are offered                     | none here; upstream `chromedriver`, `dart`         |
@@ -122,6 +122,12 @@ Key points:
 - **`checkver` with no `url` scrapes `homepage`** -- `bin/checkver.ps1` sets
   `$url = $json.homepage` under its "Not Specified" branch. A regex on its own
   is the shorthand for exactly that.
+- **`"checkver": "github"` reads `homepage`, never `url`.** Scoop skips the
+  manifest unless that homepage starts with `https://github.com/`, so a project
+  whose homepage is a Pages site or its own domain needs the object form.
+  `moviebox` and `music-dl` both failed CI this way. The skill's own probe is
+  laxer -- it falls back to the repository in the download URL -- which is why
+  `lint` stayed green while the Excavator complained.
 - `reverse`, `replace` and `useragent` need the **object** form; a bare string
   cannot carry them.
 - A `checkver.github` value must be a repository URL, **never an

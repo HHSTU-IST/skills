@@ -176,8 +176,9 @@ command -v ruff ty micromamba uv
 ruff format code python --exclude "*.ipynb"
 
 # 2) 静态检查 —— 只查 .py，排除 notebook
-#    根 pyproject 设了 fix=true，必须加 --no-fix
-ruff check  code python --no-fix --exclude "*.ipynb"
+#    根 pyproject 同时设了 fix 与 fix-only：只加 --no-fix 仍会改写文件，
+#    两个都加才是只读 —— 这是唯一「只看不改」的组合
+ruff check  code python --no-fix --no-fix-only --exclude "*.ipynb"
 
 # 3) 类型检查 —— 必须指向装有依赖的解释器
 #    环境名用第 2 节对话框选定的那个（现取，勿写死路径）
@@ -246,10 +247,11 @@ rumdl check skills/project-py/
 
 都是工具的实际行为，不是偏好。发现一个加一个，写成「现象 → 原因 → 对策」。
 
-- **`ruff check` 会当场改文件。**
-  现象：本想只看一眼问题，跑完发现代码已经被改了。
-  原因：根 `pyproject.toml` 设了 `fix = true`，`ruff check` 默认执行自动修复并落盘。
-  对策：只想检视时加 `--no-fix`。
+- **`ruff check` 会当场改文件，只加 `--no-fix` 拦不住。**
+  现象：本想只看一眼问题，跑完发现代码已经被改了；补上 `--no-fix` 还是被改。
+  原因：根 `pyproject.toml` 同时设了 `fix = true` 与 `fix-only = true`。CLI 的
+  `--no-fix` 只关掉前者，`fix-only` 仍在，而它的语义正是「照改不误、改完不报」。
+  对策：只想检视时两个都要加 —— `--no-fix --no-fix-only`；只想看会改什么用 `--diff`。
 - **`ty check` 裸跑刷出一片假警报。**
   现象：普通项目里满屏 `unresolved-import`。
   原因：`ty` 默认拿系统 Python 当检查环境，那里没有项目依赖。
@@ -289,7 +291,7 @@ rumdl check skills/project-py/
 - [ ] **新增内容里没有工具/环境的绝对路径，也没有写死的工具版本号**
 - [ ] ① **已执行 `ruff format code python --exclude "*.ipynb"`**
       （输出应为 `left unchanged` 或已完成改写）
-- [ ] ② `ruff check code python --no-fix --exclude "*.ipynb"` 无输出
+- [ ] ② `ruff check code python --no-fix --no-fix-only --exclude "*.ipynb"` 无输出
 - [ ] ③ `micromamba run -n <选定的环境> ty check code python` 通过（或剩余项均为已记录的存根假警报）
 
 ### 运行带第三方依赖的 `.py` 时

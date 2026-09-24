@@ -652,7 +652,10 @@ def _update_one(name: str, args: argparse.Namespace, root: Path, bucket: Path) -
             elif not same:
                 print("  (not written; add --apply to bump the version)")
 
-    if not changed:
+    # --readme is a request in its own right: a manifest whose upstream is
+    # unchanged still needs its README row re-synced when the *homepage* moved,
+    # so an empty `changed` list must not short-circuit that sync.
+    if not changed and not args.readme:
         print("  nothing to change.")
         return 0
 
@@ -666,7 +669,8 @@ def _update_one(name: str, args: argparse.Namespace, root: Path, bucket: Path) -
     findings = L.lint_manifest_text(text, name, readme_text=None)
     errors = [f for f in findings if f.severity == "error"]
 
-    print("  changes: " + "; ".join(changed))
+    if changed:
+        print("  changes: " + "; ".join(changed))
     if errors:
         print("  changes failed self-check:")
         report_findings(findings)
@@ -680,9 +684,11 @@ def _update_one(name: str, args: argparse.Namespace, root: Path, bucket: Path) -
         if args.print_json:
             print(text, end="")
         print("  (dry-run) nothing written")
-    else:
+    elif changed:
         write_text_keep_eol(path, text)
         print(f"  OK wrote {path}")
+    else:
+        print("  manifest unchanged; not written")
 
     if args.readme and not args.dry_run:
         _sync_readme(root, {"name": name, "section": args.section}, manifest, args)

@@ -41,7 +41,7 @@
         ["ty", "check", "--fix"]
       ],
       "verify": [
-        ["ruff", "check", "--no-cache"],
+        ["ruff", "check", "--no-cache", "--no-fix", "--no-fix-only"],
         ["ruff", "format", "--no-cache", "--check"],
         ["ty", "check", "--output-format", "concise"]
       ]
