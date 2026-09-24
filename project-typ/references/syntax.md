@@ -34,25 +34,28 @@
 decks 里最常出问题的是**内容撑破 16:9 单页**。惯用手法：
 
 ```typst
-// 固定高度 + 两栏（columns() 默认两栏）
-#block(height: 18em, columns()[
+// 分栏（columns() 默认两栏）—— 栏与栏之间必须显式 #colbreak()
+#columns()[
   #set text(size: 16pt)
   左栏内容
   #colbreak()
   右栏内容
-])
+]
 
-// 单栏固定高度
+// 单栏限高
 #block(height: 15em)[
   #set text(size: 18pt)
   ...
 ]
 ```
 
-- 高度经验值：纯文字 15–18em；含代码块 17–18em；含大图（≥70%）14–16em。
+- 分栏块**不套 `block(height: …)`**：高度由内容决定，换栏靠 `#colbreak()`；
+  `columns(n)` 就要 n−1 个 `#colbreak()`。
+- 移除固定高度后每页不再预留那段空白，版面会变紧凑、分页点前移，页数可能变化 ——
+  用 `code/deck_pages.py render` / `diff` 前后逐页比像素确认。
 - 正文字号在块内**显式**`#set text(size: ...)`：常用 18pt（正文）、16–17pt（较密）、
   12–15pt（含代码）、10–11pt（长代码）。
-- `columns()` 不带参数即两栏。
+- `columns()` 不带参数即两栏；栏宽按 `columns(n, gutter: g)` 现算，别拿两栏的宽度去量三栏块。
 
 ## 表格
 
@@ -165,7 +168,8 @@ $ <bellman>
 ```
 
 - 一律 `figure` 包 `image`，默认 `caption: none`。
-- `height` 百分比相对**所在容器**，所以放进 `block(height: ...)` 里效果可控。
+- `height` 百分比相对**所在容器**解析；分栏块的高度是 auto，百分比失去基准，
+  要比照原块高换算或直接写死 `pt`（见「控制单页容量」）。
 - 需要并排两张图时用 `columns()` 或 `subpar` 的 `sgrid`。
 
 ---
@@ -196,7 +200,8 @@ $ <bellman>
 ### 4. 超高 slide 被自动拆页
 
 Touying 检测到内容超过一页会**自动拆成两页**，留下半页空白。
-解法：`#block(height: ...)` 显式限高 + 精简内容。
+解法：精简内容、拆成多个 `===`，或者改成分栏版式（`columns()` + `#colbreak()`）。
+**不要再靠 `block(height: …)` 把内容硬压进一页** —— 固定高度只是把溢出的部分藏起来。
 
 ### 5. 路径基准是仓库根
 

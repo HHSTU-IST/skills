@@ -93,10 +93,10 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
 > ⚠️ **路径一律相对于仓库根**，不是相对于当前 `.typ` 文件。`v01-环境搭建.typ` 里写的是
 > `read("blender/v01_blender_object.py")`，而不是 `../blender/...`。不要用 `@filename:line` 或绝对路径。
 
-代码量较大时（超过约 20 行），用固定高度块包住以免撑破页面；两栏版式见 §2.1。
+代码量较大时（超过约 20 行）改用两栏版式，左栏放代码、右栏放结果图，写法见 §2.1。
 
 ```typst
-#block(height: 18em, columns()[
+#columns()[
   #[
     #set text(size: 12pt)
     #code(read("python/v01_3_pixel.py"))
@@ -108,7 +108,7 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
       #figure(image("images/v01-pixel-grid.png", width: 100%), caption: none)
     ]
   ]
-])
+]
 ```
 
 ### 1.3 图片：存 `images/`，`figure` 包 `image`
@@ -211,14 +211,14 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
 - `info` 由 `lib/info.toml` 提供，已定义：`info-intro`、`info-cv`、`info-ml`、`info-biomed`、
   `info-algo`、`info-extra`、`info-extrax`、`info-philos`、`info-shakesp`、`info-public`、`info-dialog`。
 - **一句式的教学提示用 `note[...]`**，危险/易错点用 `warning[...]` / `caution[...]`。
-- 固定高度的分栏页用 `#block(height: 18em, columns()[...])`，**两栏之间必须加 `#colbreak()`**，见下节。
+- 分栏页用 `#columns()[...]`，**栏与栏之间必须加 `#colbreak()`**，见下节。
 
-### 2.1 分栏块：`columns()` + `#colbreak()`，不再用 `grid`
+### 2.1 分栏块：裸 `columns()` + `#colbreak()`，不套 `block(height:)`、不用 `grid`
 
-固定高度的两栏块统一写成这样（2026-09-22 起，全仓 106 处已由 `grid` 改为此形）：
+分栏块统一写成这样（2026-09-24 起；旧的 `#block(height: 18em, columns()[…])` 由下面的脚本全数摘掉外层）：
 
 ```typst
-#block(height: 18em, columns()[
+#columns()[
   #[
     #set text(size: 12pt)
     #set par(leading: 0.62em)
@@ -231,27 +231,37 @@ ls "$env:APPDATA/typst/packages/preview"    # 已发布版
       #figure(image("images/v03-ex6.7-threshold-binary.png", width: 100%), caption: none)
     ]
   ]
-])
+]
 ```
 
 四条要点，都是踩过坑换来的：
 
-1. **不要再用 `#block(height: 17em, grid(columns: (a, b), column-gutter: …))`。**
-   `columns()` 两侧等宽、没有列宽比参数；`grid` 只作真正需要表格语义时使用。
-2. **两栏之间必须写 `#colbreak()`。** `columns()` 是**流式分栏**：只有当前栏填满才换栏，
-   左栏内容不满一栏时，右栏内容会直接接着堆在左栏下面（右栏留空）。`grid` 是显式定位，
-   没这个问题，所以漏掉 `#colbreak()` 会**静默**改掉版面。用默认的弱分栏（`#colbreak()`
-   而非 `#colbreak(weak: false)`）：左栏恰好满栏时不会多切出一个空栏。
+1. **不要套 `#block(height: …)`，也不要用 `#grid(columns: (a, b), column-gutter: …)`。**
+   高度交给内容自己决定；`columns()` 两侧等宽、没有列宽比参数，`grid` 只作真正需要表格语义时使用。
+   （`#block(height: …)` 仍可给**单栏**内容限高，见 `references/syntax.md`。）
+2. **每栏之间必须写 `#colbreak()`。** 高度变成 auto 之后 `columns()` 是**流式分栏**：
+   不写 `#colbreak()` 就**根本不会流向下一栏**，后续内容会全部堆在第一栏里（静默改版面）。
+   用默认的弱分栏（`#colbreak()` 而非 `#colbreak(weak: false)`）：前一栏恰好满栏时不会多切出一个空栏。
+   **多栏块要写 n−1 个**——`columns(3)` 两个、`columns(4)` 三个，改写时按栏数逐个补。
 3. **每栏用 `#[ … ]` 包住。** `columns()` 只接受**一个**内容块（写 `columns()[a][b]` 是语法错误），
    且块内 `#set` 会一直向后生效；包一层才能让左栏的字号 / 行距不串到右栏。
-4. **块高按内容是内容驱动的，18em 只是最常见的值。** 全仓实际的固定块高分布为
-   1 / 5 / 6 / 7 / 10 / 11 / 12 / 14 / 15 / 16 / 17 / 18 / 19em —— 示例页（左代码 + 右结果图）
-   默认 18em；纯文字或表格块按需要取小值。**把 17em 的块提到 18em 前先量页数**：
-   块高每增加 1em，页面「标题 + 说明句 + 块」就可能装不下而多出一张空白页。
+4. **块内的 `height: N%` 要改成绝对 `pt`。** 原基准是块高 H，摘掉外壳后百分比改按**页面剩余高度**解析，
+   `image(…, height: 95%)` 会直接变形；按 `H × N%` 冻结（1em = 20pt，如 11em 块里的 90% → `198pt`）。
 
-改完用 `python code/slide_qa.py <文件>` 看页数与空白残页，用
-`python code/check_example_fit.py` 看示例页左栏代码是否撑破 18em（它让 Typst 实测行高）。
-批量改写的参考实现见 `code/to_columns.py`。
+改写与校验的工具都在 `code/`：
+
+```bash
+python code/measure_columns_split.py                      # 实测各块的分栏点 -> .tmp/columns-split.json
+python code/unwrap_columns_block.py --splits .tmp/columns-split.json            # 干跑
+python code/unwrap_columns_block.py --splits .tmp/columns-split.json --apply    # 落盘
+```
+
+- 不给 `--splits` 时，**没有 `#colbreak()` 的块一律跳过**：固定高度是它唯一的分栏依据，
+  摘掉外壳会整块塌进第一栏，比不改更糟。
+- 分栏点不是猜的：按「可分页单元」切分正文（空行分段、段落若为列表再按同级列表项拆细），
+  量每个前缀在**该块自己的单栏宽**下的自然高度，取第一个装不下的单元。
+- **去掉固定高度不是纯格式化**：每页不再预留那段空白，版面会变紧凑、分页点整体前移，页数可能变化。
+  用 `python code/deck_pages.py render .tmp/pages-base` 与 `render` + `diff` 逐页比像素确认有没有改坏。
 
 ## 3. 编译与校验
 
@@ -263,7 +273,7 @@ typst compile --font-path "C:/Windows/Fonts" v01-环境搭建.typ
 python code/slide_qa.py v05-几何变换.typ
 python code/slide_qa.py --all
 
-# 示例页专检：单页版式（左代码 + 右结果图）的左栏代码是否撑破 18em（Typst 实测行高）
+# 示例页专检：单页版式（左代码 + 右结果图）的左栏代码是否超出分栏区（Typst 实测行高）
 python code/check_example_fit.py
 python code/check_example_fit.py --margin 60      # 只列余量 < 60pt 的
 
@@ -310,7 +320,8 @@ p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
 - [ ] 图片放在 `images/`，用 `figure(image(...), caption: none)` 包裹
 - [ ] 数据放在 `data/`，是 CSV；表格用 `tableq(data, 列数)`
 - [ ] 中文长句保持完整，未被切分成短句
-- [ ] 固定高度的分栏块用 `columns()`，两栏之间**有 `#colbreak()`**，每栏用 `#[ … ]` 包住
+- [ ] 分栏块用裸 `columns()`（不套 `block(height:)`），**每栏之间都有 `#colbreak()`**（n 栏块有 n−1 个），每栏用 `#[ … ]` 包住
+- [ ] 分栏块里的 `height: N%` 都已按原块高冻结成绝对 `pt`
 - [ ] 已跑 typstyle；若文件原本是 CRLF，**换行已还原**
 - [ ] 用 `--font-path "C:/Windows/Fonts"` 编译通过，且 `code/slide_qa.py` 无超容告警
 - [ ] **没有**用 `present_files` 展示编译产出的 PDF / PNG
