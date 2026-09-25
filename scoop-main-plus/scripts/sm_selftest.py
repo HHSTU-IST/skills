@@ -257,13 +257,12 @@ def check_repo(check: Checker, repo: Path) -> None:
         check.fail("no manifests under bucket/")
         return
 
-    drift: list[str] = []
-    for path in files:
-        if (
-            L.dumps_manifest(L.load_manifest(path), preserve_order=True).encode("utf-8")
-            != path.read_bytes()
-        ):
-            drift.append(path.stem)
+    drift: list[str] = [
+        path.stem
+        for path in files
+        if L.dumps_manifest(L.load_manifest(path), preserve_order=True).encode("utf-8")
+        != path.read_bytes()
+    ]
     if drift:
         check.warn(
             "formatting differs from the standard (update keeps the original order and will not touch them)",

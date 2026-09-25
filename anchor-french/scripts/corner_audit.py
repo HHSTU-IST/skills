@@ -264,9 +264,11 @@ def audit(cfg: dict, md: str) -> list[str]:
             fails.append(f"{tag} {err}")
             continue
         rel = f.relative_to(skill_root()).as_posix()
-        for name in sorted(set(re.findall(r"[\w-]+-corner-config\.json", text))):
-            if name != DEFAULT_CONFIG_NAME:
-                aliens.append((rel, name))
+        aliens.extend(
+            (rel, name)
+            for name in sorted(set(re.findall(r"[\w-]+-corner-config\.json", text)))
+            if name != DEFAULT_CONFIG_NAME
+        )
     for rel, name in aliens:
         fails.append(f"{tag} {rel} 引用了其它语言的配置 {name!r}")
 

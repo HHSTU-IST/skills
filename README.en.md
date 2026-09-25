@@ -348,10 +348,10 @@ flowchart TD
     E --> F{"findings"}
     F -->|some| G["Apply the hint, then rerun"]
     G --> E
-    F -->|none, exit code 0| H["Done; list-rules proves script and rule table still agree"]
+    F -->|none, exit code 0| H["Done; --selfcheck proves script and rule table still agree"]
 ```
 
-The checker is worth a note on its own: it reads Markdown as well as `.tex`, extracting math from `$…$`, `$$…$$`, `\(…\)`, `\[…\]` and `latex`-fenced code blocks, and blanking the rest without disturbing character offsets so a finding still maps to the right line and column. `--list-rules` doubles as a consistency audit, failing if an id exists in the script but is undocumented in `SKILL.md`.
+The checker is worth a note on its own: it reads Markdown as well as `.tex`, extracting math from `$…$`, `$$…$$`, `\(…\)`, `\[…\]` and `latex`-fenced code blocks, and blanking the rest without disturbing character offsets so a finding still maps to the right line and column. `--selfcheck` (older name `--list-rules`) doubles as a consistency audit, failing if an id exists in the script but is undocumented in `SKILL.md`.
 
 ### project-typ
 

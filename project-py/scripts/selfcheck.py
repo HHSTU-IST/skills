@@ -154,17 +154,20 @@ def check_identity(source: str) -> list[str]:
 
 def check_docs(source: str) -> list[str]:
     """Every `references/` pointer resolves, and no reference file is orphaned."""
-    found: list[str] = []
     pointed = set(REF_POINTER_RE.findall(source))
     on_disk = (
         {f"references/{path.name}" for path in REFERENCES.iterdir() if path.is_file()}
         if REFERENCES.is_dir()
         else set()
     )
-    for rel in sorted(pointed - on_disk):
-        found.append(f"SKILL.md: points at {rel}, which does not exist")
-    for rel in sorted(on_disk - pointed):
-        found.append(f"SKILL.md: never points at {rel}, so nothing loads it")
+    found = [
+        f"SKILL.md: points at {rel}, which does not exist"
+        for rel in sorted(pointed - on_disk)
+    ]
+    found.extend(
+        f"SKILL.md: never points at {rel}, so nothing loads it"
+        for rel in sorted(on_disk - pointed)
+    )
     return found
 
 

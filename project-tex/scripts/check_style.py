@@ -5,11 +5,13 @@ The rule table below is the mechanical twin of the table in `SKILL.md`: same ids
 same meanings. Report-only -- the file is never rewritten.
 
     python check_style.py <file>...
-    python check_style.py --list-rules
+    python check_style.py --selfcheck
 
-`--list-rules` doubles as the package self-check: it prints the rule table and
-audits it against `SKILL.md` in both directions, so a rule added on one side
-only is a loud failure instead of a silent drift.
+`--selfcheck` is this package's self-check entry. The sibling packages ship a
+`scripts/selfcheck.py`; this one has no separate script, so the entry lives
+here. `--list-rules` is the same flag under its older name: it prints the rule
+table and audits it against `SKILL.md` in both directions, so a rule added on
+one side only is a loud failure instead of a silent drift.
 
 Exit code 0 when clean, 1 when a finding was printed, 2 on a usage or rules-table
 problem.
@@ -228,12 +230,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("paths", nargs="*", type=Path, help="files to check")
     parser.add_argument(
+        "--selfcheck",
         "--list-rules",
+        dest="selfcheck",
         action="store_true",
-        help="print the rule table and audit SKILL.md",
+        help="self-check: print the rule table and audit it against SKILL.md",
     )
     args = parser.parse_args(argv)
-    if args.list_rules:
+    if args.selfcheck:
         return list_rules()
     paths: list[Path] = args.paths
     if not paths:

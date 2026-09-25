@@ -981,8 +981,7 @@ def build_manifest(spec: dict) -> OrderedDict:
     if missing:
         docs = catalog.get("param_docs", {})
         lines = [f"recipe '{recipe_id}' is missing required parameters:"]
-        for key in missing:
-            lines.append(f"  - {key}: {docs.get(key, '')}")
+        lines.extend(f"  - {key}: {docs.get(key, '')}" for key in missing)
         raise SmError("\n".join(lines))
     builder = BUILDERS.get(recipe["builder"])
     if builder is None:
@@ -1045,9 +1044,11 @@ def _all_urls(manifest: dict) -> list[str]:
         found.append(manifest["url"])
     elif isinstance(manifest.get("url"), list):
         found.extend(u for u in manifest["url"] if isinstance(u, str))
-    for entry in (manifest.get("architecture") or {}).values():
-        if isinstance(entry, dict) and isinstance(entry.get("url"), str):
-            found.append(entry["url"])
+    found.extend(
+        entry["url"]
+        for entry in (manifest.get("architecture") or {}).values()
+        if isinstance(entry, dict) and isinstance(entry.get("url"), str)
+    )
     return found
 
 
@@ -1800,9 +1801,11 @@ def lint_manifest_text(
         au_urls: list[str] = []
         if isinstance(autoupdate.get("url"), str):
             au_urls.append(autoupdate["url"])
-        for entry in (autoupdate.get("architecture") or {}).values():
-            if isinstance(entry, dict) and isinstance(entry.get("url"), str):
-                au_urls.append(entry["url"])
+        au_urls.extend(
+            entry["url"]
+            for entry in (autoupdate.get("architecture") or {}).values()
+            if isinstance(entry, dict) and isinstance(entry.get("url"), str)
+        )
         current_urls = _all_urls(manifest)
         if (
             au_urls

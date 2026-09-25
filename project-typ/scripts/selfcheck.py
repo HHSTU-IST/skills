@@ -50,14 +50,18 @@ LINE_LIMIT = 500
 SIZE_TOLERANCE = 0.05
 SIZE_SECTION = "篇幅说明"
 CHECKLIST_SECTION = "检查清单"
+SYMBOLS_SECTION = "### 自定义函数"
+RULE_SECTION = "条硬规则"
 
 KEY_RE = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):", re.MULTILINE)
 NAME_RE = re.compile(r"^name:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
 REF_POINTER_RE = re.compile(r"references/[A-Za-z0-9._-]+\.[A-Za-z0-9]+")
 CALL_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.-]*)\([^`]*\)`")
-H2_RE = re.compile(r"^## (\d+)\.", re.MULTILINE)
-H3_RULE_RE = re.compile(r"^### 1\.(\d+)[ \t]", re.MULTILINE)
+RULE_HEADING_RE = re.compile(
+    r"^## [^\n]*?([一二三四五六七八九十]+)条硬规则", re.MULTILINE
+)
 RULE_COUNT_RE = re.compile(r"([一二三四五六七八九十]+)条硬规则")
+H3_RE = re.compile(r"^### ", re.MULTILINE)
 CHECKLIST_ITEM_RE = re.compile(r"^- \[ \]", re.MULTILINE)
 SIZE_CLAIM_RE = re.compile(r"(\d+)\s*行\s*/\s*估算\s*~([\d.]+)k token")
 ANY_H2_RE = re.compile(r"^## ", re.MULTILINE)
@@ -163,20 +167,25 @@ def check_docs(source: str) -> list[str]:
 
 
 def check_symbols(source: str) -> list[str]:
-    """The symbols section 1.1 tells the agent to reuse must exist in packages.md.
+    """The symbols the reuse subsection tells the agent to reuse must exist in packages.md.
 
     Only `name(...)` inside backticks is taken, so native Typst calls quoted
     elsewhere in the body (``image()``, ``read()``) never enter the comparison.
     """
-    section = _section(source, "### 1.1 ")
+    section = _section(source, SYMBOLS_SECTION)
     if not section:
-        return ["SKILL.md: section 1.1 is missing, so the symbol list has no source"]
+        return [
+            (
+                f"SKILL.md: the {SYMBOLS_SECTION} subsection is missing, "
+                "so the symbol list has no source"
+            )
+        ]
     reference = _read(REFERENCES / "packages.md")
     if reference is None:
         return ["references/packages.md: cannot be read as UTF-8"]
     found = [
         (
-            f"SKILL.md section 1.1 reuses `{name}()` but "
+            f"SKILL.md {SYMBOLS_SECTION} reuses `{name}()` but "
             f"references/packages.md never names it"
         )
         for name in sorted(set(CALL_RE.findall(section)))
@@ -184,7 +193,7 @@ def check_symbols(source: str) -> list[str]:
     ]
     for name in PACKAGE_NAMES:
         if name not in section:
-            found.append(f"SKILL.md section 1.1 never names the package {name}")
+            found.append(f"SKILL.md {SYMBOLS_SECTION} never names the package {name}")
         if name not in reference:
             found.append(f"references/packages.md never names the package {name}")
         elif re.search(rf"^## {re.escape(name)}\b", reference, re.MULTILINE) is None:
@@ -195,28 +204,38 @@ def check_symbols(source: str) -> list[str]:
 
 
 def check_sections(source: str) -> list[str]:
-    """Numbering is contiguous, the claimed rule count is real, the lists are in place."""
+    """The claimed rule count is real, the lists are in place, the closing note is last.
+
+    Headings carry no numbering, so the count is read from the heading text
+    (`## 六条硬规则`) and checked against the `###` subsections under it.
+    """
     found: list[str] = []
-    top = [int(number) for number in H2_RE.findall(source)]
-    if top != list(range(1, len(top) + 1)):
-        found.append(f"SKILL.md: `## N.` numbering is not contiguous: {top}")
-    rules = [int(number) for number in H3_RULE_RE.findall(source)]
-    if rules != list(range(1, len(rules) + 1)):
-        found.append(f"SKILL.md: `### 1.N` numbering is not contiguous: {rules}")
-    claimed = {CN_NUMERALS.get(word, -1) for word in RULE_COUNT_RE.findall(source)}
-    if claimed != {len(rules)}:
+    heading = RULE_HEADING_RE.search(source)
+    if heading is None:
+        return [
+            "SKILL.md: no `## N条硬规则` heading, so the rule count cannot be checked"
+        ]
+    claimed = CN_NUMERALS[heading.group(1)]
+    rules = len(H3_RE.findall(_h2_section(source, RULE_SECTION)))
+    if claimed != rules:
         found.append(
-            f"SKILL.md claims {sorted(claimed)} hard rules but carries "
-            f"{len(rules)} `### 1.N` subsections"
+            f"SKILL.md's rule heading says {claimed} but the section carries "
+            f"{rules} `###` subsections"
+        )
+    mentioned = {CN_NUMERALS.get(word, -1) for word in RULE_COUNT_RE.findall(source)}
+    if mentioned != {claimed}:
+        found.append(
+            f"SKILL.md mentions the rule count as {sorted(mentioned)}, "
+            f"the heading says {claimed}"
         )
     checklist = _h2_section(source, CHECKLIST_SECTION)
     if not checklist:
         found.append(f"SKILL.md: no `## ...{CHECKLIST_SECTION}...` section")
     else:
         items = len(CHECKLIST_ITEM_RE.findall(checklist))
-        if items < len(rules):
+        if items < claimed:
             found.append(
-                f"SKILL.md: the checklist has {items} items for {len(rules)} rules"
+                f"SKILL.md: the checklist has {items} items for {claimed} rules"
             )
     if SIZE_SECTION in source and ANY_H2_RE.search(_h2_section(source, SIZE_SECTION)):
         found.append(f"SKILL.md: the {SIZE_SECTION} section is not at the end")

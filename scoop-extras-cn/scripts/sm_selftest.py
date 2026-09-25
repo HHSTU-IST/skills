@@ -188,10 +188,11 @@ def check_paths(check: Checker) -> None:
         *sorted((root / "references").glob("*.md")),
         *sorted((root / "scripts").glob("*.py")),
     ]
-    hard: list[str] = []
-    for path in text_files:
-        for match in HARDCODED_SCOOP_ROOT.finditer(path.read_text(encoding="utf-8")):
-            hard.append(f"{path.name}: {match.group(0)}")
+    hard: list[str] = [
+        f"{path.name}: {match.group(0)}"
+        for path in text_files
+        for match in HARDCODED_SCOOP_ROOT.finditer(path.read_text(encoding="utf-8"))
+    ]
     check.expect(
         not hard,
         "no hard-coded Scoop root in the package ($env:Scoop is read at run time)",
@@ -282,13 +283,12 @@ def check_repo(check: Checker, repo: Path) -> None:
         check.fail("no manifests under bucket/")
         return
 
-    drift: list[str] = []
-    for path in files:
-        if (
-            L.dumps_manifest(L.load_manifest(path), preserve_order=True).encode("utf-8")
-            != path.read_bytes()
-        ):
-            drift.append(path.stem)
+    drift: list[str] = [
+        path.stem
+        for path in files
+        if L.dumps_manifest(L.load_manifest(path), preserve_order=True).encode("utf-8")
+        != path.read_bytes()
+    ]
     if drift:
         check.warn(
             "formatting differs from the standard (update keeps the original order and will not touch them)",
