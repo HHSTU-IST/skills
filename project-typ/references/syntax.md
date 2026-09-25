@@ -194,8 +194,18 @@ $ <bellman>
 #note[一句话提示]
 #warning[危险]
 #caution[注意]
-#tip[...]
 #quote[...]
+```
+
+`#tip[...]` **默认这样写**——外包 `#[ … ]`、块首 `#set text(size: 14pt)`，不要裸写 `#tip[...]`：
+
+```typst
+#[
+  #set text(size: 14pt)
+  #tip[
+    ...
+  ]
+]
 ```
 
 `note[...]` 常用于页面底部给一句总结，外面可再包一层字号设置：
@@ -299,3 +309,18 @@ typst compile --font-path "C:/Windows/Fonts" --ppi 100 v05-几何变换.typ "out
 ```
 
 缺 `{0p}` 会报 *cannot export multiple images without a page number template*。
+
+### 包目录与命名空间
+
+`lib/lib.typ` 里的 `#import "@preview/qooklet:0.7.2": *` 这类引用，按
+`{数据目录}/typst/packages/{命名空间}/{包名}/{版本}` 逐级解析，**本地有就不走网络**。
+Windows 上两个根不是同一个：
+
+| 命名空间   | 位置（Windows）                                 | 来历                      |
+| ---------- | ----------------------------------------------- | ------------------------- |
+| `@preview` | `%LOCALAPPDATA%\typst\packages\preview\`        | 首次用到时自动下载的缓存  |
+| `@local`   | `%APPDATA%\typst\packages\local\<名字>\<版本>\` | 手放或 git clone 的开发版 |
+
+要改包源码来调试，就把仓库 clone 进 `local` 下的 `<名字>\`，版本号那一层留作包体，
+用 `@local/<名字>:<版本>` 引入——改完即生效，不必等发布。
+「找不到包」「改了半天没生效」先看这两处，而不是翻 `lib.typ`。

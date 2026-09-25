@@ -100,6 +100,8 @@ agent_created: true
   写死绝对计量后，换模板、改字号、改栏数都会立刻失真。宽度同理（`width: 60%`）。
 - **不要单独写 `#image(...)`** —— 一律用 `#figure(...)` 包住，以保持版式与计数行为一致。
 - 常用素材命名：`ai-*`、`bm-*`（生物医学）、`blender-*`、`app-cv-*`。新增前先确认 `images/` 里没有可复用的。
+- **有些仓库把截图按主题收在子目录**（camp 是 `vscode/images/`，与 `vscode/*.md` 共用同一批素材），
+  动笔前先看仓库现状，别在 `images/` 下另建一份副本。
 - `images/` 被 `.gitignore` 忽略（**不在 git 里**），删图前先看「踩坑点」。PNG 已用 oxipng 无损压过，
   重新生成或新增大量 PNG 后可以再压一遍：`python code/oxipng_images.py --days 7`（干跑），
   加 `--apply` 落盘（会先备份到 `.tmp/backup-images-oxipng/`，压完逐张比像素）。
@@ -171,6 +173,18 @@ agent_created: true
 - `info` 由 `lib/info.toml` 提供，已定义：`info-intro`、`info-cv`、`info-ml`、`info-biomed`、
   `info-algo`、`info-extra`、`info-extrax`、`info-philos`、`info-shakesp`、`info-public`、`info-dialog`。
 - **一句式的教学提示用 `note[...]`**，危险/易错点用 `warning[...]` / `caution[...]`。
+- **`#tip[...]` 默认外面包一层 `#[ … ]`，块首写 `#set text(size: 14pt)`**（2026-09-25 定），
+  不要裸写 `#tip[...]`：
+
+  ```typst
+  #[
+    #set text(size: 14pt)
+    #tip[
+      ...
+    ]
+  ]
+  ```
+
 - 分栏页用 `#columns()[...]`：摘掉外壳（高度 auto）的块**栏与栏之间必须加 `#colbreak()`**；
   保留 `#block(height: …)` 外壳的块则**一个都不加**，分栏交给块高，见下节。
 
@@ -291,6 +305,7 @@ p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
 - [ ] 分栏块二选一：**摘壳的**用裸 `columns()`（不套 `block(height:)`）且**每栏之间都有 `#colbreak()`**（n 栏块 n−1 个）；**块内有有序列表的**保留 `#block(height: ..., …)` 且**一个 `#colbreak()` 都不加**。两种都每栏用 `#[ … ]` 包住
 - [ ] 分栏块里图片的 `height` / `width` 只用百分数（无绝对 `pt` / `em`）；摘过外壳的块，数值已按新基准重新标定
 - [ ] `#columns()[]` 的内容块首行有 `#set text(size: 18pt)`（某栏要别的字号时在该栏的 `#[ … ]` 里覆盖）
+- [ ] 每个 `#tip[...]` 都外包 `#[ … ]`，且里面写了 `#set text(size: 14pt)`
 - [ ] 页数与改写前逐份比对过；**多出来的页都是「续页」**，且原版那一页确实在丢内容（不是改坏版面）
 - [ ] 已跑 typstyle；若文件原本是 CRLF，**换行已还原**
 - [ ] 用 `--font-path "C:/Windows/Fonts"` 编译通过，且 `code/slide_qa.py` 无超容告警
@@ -356,4 +371,4 @@ p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
 
 ## 篇幅说明
 
-本文档 357 行 / 估算 ~6.1k token，仍超「5000 token / 500 行」的软门槛。**不拆的理由：剩下的每一节都在写 `.typ` 的当下被读到，拆出去等于每次多开一个文件。**六条硬规则是动笔前的分流依据；「deck 骨架」与「分栏块」模板每页都要套；「编译与校验」的命令与「检查清单」是「做完」的判据；「踩坑点」的九条动版面时几乎必然命中。查表与一次性的部分已经下沉（「自定义函数」的包清单、「代码」的两栏示例、「数据」的 xlsx 示例、「分栏块」的迁移脚本），各节留了指针。**再增内容时优先下沉到 `references/`，不要抬高这一节记下的水位。**
+本文档 373 行 / 估算 ~6.3k token，仍超「5000 token / 500 行」的软门槛。**不拆的理由：剩下的每一节都在写 `.typ` 的当下被读到，拆出去等于每次多开一个文件。**六条硬规则是动笔前的分流依据；「deck 骨架」与「分栏块」模板每页都要套；「编译与校验」的命令与「检查清单」是「做完」的判据；「踩坑点」的九条动版面时几乎必然命中。查表与一次性的部分已经下沉（「自定义函数」的包清单、「代码」的两栏示例、「数据」的 xlsx 示例、「分栏块」的迁移脚本），各节留了指针。**再增内容时优先下沉到 `references/`，不要抬高这一节记下的水位。**
