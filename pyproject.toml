@@ -11,6 +11,11 @@ docstring-code-format = true
 docstring-code-line-length = 60
 # Use `\n` line endings for all files
 line-ending = "lf"
+# Keep markdown out of the formatter: `ruff` also formats the ```python
+# fences inside `.md`, and `line-ending = "lf"` would then rewrite the CRLF
+# fences of the packages that ship CRLF -- a diff that reads as a no-op
+# while the file's line endings really do flip.
+exclude = ["*.md"]
 
 skip-magic-trailing-comma = true
 

@@ -20,8 +20,7 @@ everything runs offline except `--checkver`, `--fetch-hash` and `--rehash`.
 
 This is the **Extras-CN** build of the skill, adapted to
 `github.com/Scoopforge/Extras-CN` and the copy of that bucket Scoop has
-installed. It was ported from the Extras-Plus build; `references/porting.md`
-lists the differences.
+installed. It was ported from the Extras-Plus build.
 
 **Target**: `$env:Scoop/buckets/extras-cn`, the copy of this bucket Scoop has
 installed. The path is read from the environment at run time and is never
@@ -40,10 +39,9 @@ Package layout:
 - `references/lint-rules.md` the 23 rules and how to fix each one
 - `references/gotchas.md` the 13 surprises behind the "Gotchas" section, in full
 - `references/cli.md` the flags of all three commands, with the invocations
-- `references/porting.md` what this build changes versus the Extras-Plus one
 - `references/coverage.md` the upstream survey behind the catalog, and the gaps
 - `assets/recipes.jsonc` the single source of truth for recipes: plain JSON under
-  a deliberately non-`.json` name -- see "1. Hard constraints"
+  a deliberately non-`.json` name -- see the "Hard constraints" section
 
 Scripts derive the package root themselves, so **they run from any cwd**:
 

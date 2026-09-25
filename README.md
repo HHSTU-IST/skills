@@ -469,7 +469,7 @@ flowchart TD
 
 三个姊妹 skill，把「上游发了新包」或「上游发了新版本」变成一条命令。它们共用一套架构：配方目录、共享库、三命令 CLI、自检，以及一个在写入前校验结果的规则引擎。
 
-它们只在各自目标仓库的强制要求下才产生差异。两个 extras 构建是同一个 skill 移植到两个 bucket，README 约定不同、主要包形态也不同；`scoop-extras-cn` 还额外地在自己 `references/porting.md` 里记录了它与 `scoop-extras-plus` 的分歧。
+它们只在各自目标仓库的强制要求下才产生差异。两个 extras 构建是同一个 skill 移植到两个 bucket，README 约定不同、主要包形态也不同；`scoop-extras-cn` 还额外地在自己 `references/lint-rules.md` 的 divergence 节与 `references/coverage.md` 开头记录了它与 `scoop-extras-plus` 的分歧。
 
 |             | `scoop-main-plus`          | `scoop-extras-plus`          | `scoop-extras-cn`          |
 | :---------- | :------------------------- | :--------------------------- | :------------------------- |
@@ -562,7 +562,7 @@ flowchart TD
 
 ### scoop-extras-cn
 
-**Extras-CN** bucket 的 manifest（88 个 manifest，面向中文）。配方目录、构建器、规范键序都与 Extras-Plus 构建相同；差异只来自这个 bucket 实际施加的约束，`references/porting.md` 把它们全部列成表；命令行旗标与调用示例另放在 `references/cli.md`。
+**Extras-CN** bucket 的 manifest（88 个 manifest，面向中文）。配方目录、构建器、规范键序都与 Extras-Plus 构建相同；差异只来自这个 bucket 实际施加的约束，`references/lint-rules.md` 的 divergence 节把它们全部列成表；命令行旗标与调用示例另放在 `references/cli.md`。
 
 让它与众不同的几点：
 

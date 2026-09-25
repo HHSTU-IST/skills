@@ -322,6 +322,21 @@ as soon as a new one shows up — this is where the density is.
   `except` clauses, which no formatter rewrites. A bare `# fmt: skip` is the
   other way out, but it stops protecting the line the moment the comment is
   lost, and prose after the directive silently disables it.
+- **`ruff format` reaches into `.md` code fences, and in a CRLF package that
+  is a line-ending bug wearing a formatting costume.** Fences marked
+  `python` / `py` get formatted; those marked `text` or left bare do not.
+  For a CRLF file the content is already fine, and the only complaint is that
+  the fence body uses `\r\n` -- `ruff format --check` wants `\n`, because
+  this repo sets `line-ending = "lf"`. The diff then reads as a no-op: the
+  `-` and `+` lines are identical to the eye, while the fence's line endings
+  really do flip and the package's own line-ending invariant breaks.
+  `pyproject.toml` therefore carries `[tool.ruff.format] exclude = ["*.md"]`,
+  which keeps markdown out of `ruff`'s reach, so a hand-run `ruff format .`
+  no longer edits the docs. Moving `ruff format` into the markdown group
+  instead is not the way out: the rules table refuses to load, because a
+  step's tool must accept the type's suffixes (`markdown hands .md to ruff,
+  which only accepts .py`). Markdown content belongs to `rumdl`; `ruff` only
+  ever sees `.py`.
 
 ## Anti-patterns
 

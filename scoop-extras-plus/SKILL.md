@@ -35,7 +35,7 @@ Package layout:
 - `references/lint-rules.md` the 23 rules and how to fix each one
 - `references/coverage.md` the upstream survey behind the catalog, and the gaps
 - `assets/recipes.jsonc` the single source of truth for recipes: plain JSON under
-  a deliberately non-`.json` name -- see "1. Hard constraints"
+  a deliberately non-`.json` name -- see the "Hard constraints" section
 
 Scripts derive the package root themselves, so **they run from any cwd**:
 
