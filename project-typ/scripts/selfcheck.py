@@ -11,14 +11,14 @@ human rereading the files:
 
     identity    frontmatter keys, `name` against the directory, the type line
     docs        every `references/` pointer resolves, and nothing is orphaned
-    symbols     the symbol list in section 1.1 against references/packages.md
-    sections    `## N.` / `### 1.N` numbering, and the rule count the text claims
+    symbols     the symbol list under the 自定义函数 rule against references/packages.md
+    sections    the rule count the text claims, against the `###` subsections it has
     size        whether the body is over the soft limit, and the closing note
 
 The `code/*.py` tools quoted in the body belong to the lectures repo, not to
 this package, so nothing here runs them. What this package can round-trip
-offline is `symbols` (body against the reference doc) and `sections` (the text
-against its own numbering).
+offline is `symbols` (body against the reference doc) and `sections` (the claimed
+rule count against the subsections it has).
 
 Exit code 0 when clean, 1 when a check reported something, 2 when the package
 itself cannot be read. Report-only -- nothing is ever rewritten.

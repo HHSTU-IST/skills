@@ -202,20 +202,20 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 
 ### 顶层键的消费方
 
-| JSON 顶层键          | 内容                                                        | 消费方 / 对应章节                  |
-| -------------------- | ----------------------------------------------------------- | ---------------------------------- |
-| `meta`               | 技能名、版本、简报文件名                                    | `scripts/corner_skill.py` 落盘命名 |
-| `constraints`        | 人数、时长、各题上限、分组大小                              | 校验 / SKILL.md §3 分组规则        |
-| `grammar_points`     | 一级章节 → 二级条目树                                       | Q1、Q2                             |
-| `participant_levels` | 水平档位（含「混合」）                                      | Q3                                 |
-| `scales`             | 规模（人数区间 + 总时长）                                   | Q5、时间分配校验                   |
-| `topic_dimensions`   | 三个通用生活维度                                            | SKILL.md 附录 A.1 话题生成参考     |
-| `topic_pool`         | 话题题库（可选题库 / 🎲 随机一个 / 自定义输入）             | Q4                                 |
-| `time_allocation`    | 环节占比与分钟数                                            | 简报、SKILL.md 附录 A.5            |
-| `vocab_targets`      | 各水平词汇量区间                                            | 简报、SKILL.md §4.4                |
-| `exam`               | DELE 等级、标注规则、rubric                                 | 简报、SKILL.md §4.3                |
-| `question_plan`      | 提问编排（顺序 / 类型 / 依赖 / 上限 / 模式）                | intake 状态机、SKILL.md §3         |
-| `style`              | 纯西文、无 `---`、输出路径模板、POS 分组、阶段名、i18n 文案 | 简报渲染、SKILL.md §5              |
+| JSON 顶层键          | 内容                                                        | 消费方 / 对应章节                         |
+| -------------------- | ----------------------------------------------------------- | ----------------------------------------- |
+| `meta`               | 技能名、版本、简报文件名                                    | `scripts/corner_skill.py` 落盘命名        |
+| `constraints`        | 人数、时长、各题上限、分组大小                              | 校验 / SKILL.md「交互契约」的选项分组规则 |
+| `grammar_points`     | 一级章节 → 二级条目树                                       | Q1、Q2                                    |
+| `participant_levels` | 水平档位（含「混合」）                                      | Q3                                        |
+| `scales`             | 规模（人数区间 + 总时长）                                   | Q5、时间分配校验                          |
+| `topic_dimensions`   | 三个通用生活维度                                            | SKILL.md「话题生成方法」                  |
+| `topic_pool`         | 话题题库（可选题库 / 🎲 随机一个 / 自定义输入）             | Q4                                        |
+| `time_allocation`    | 环节占比与分钟数                                            | 简报、SKILL.md「环节时间分配与规模备注」  |
+| `vocab_targets`      | 各水平词汇量区间                                            | 简报、SKILL.md「生成生词表」              |
+| `exam`               | DELE 等级、标注规则、rubric                                 | 简报、SKILL.md「30 题生成规则」           |
+| `question_plan`      | 提问编排（顺序 / 类型 / 依赖 / 上限 / 模式）                | intake 状态机、SKILL.md「交互契约」       |
+| `style`              | 纯西文、无 `---`、输出路径模板、POS 分组、阶段名、i18n 文案 | 简报渲染、SKILL.md「风格约定」            |
 
 ## 解析层 `scripts/corner_config.py`
 
@@ -257,7 +257,7 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 | `label_of_level(id)` / `label_of_scale(id)`               | id → 展示标签                                                                |
 
 > 上面是 `SkillConfig`（corner_config.py）的查询 API。
-> 下方 `SkillSession`（corner_skill.py）的公开方法见 §3.2–§3.3。其中 `preview_brief()` 返回与
+> 下方 `SkillSession`（corner_skill.py）的公开方法见「交互收集」与「导出简报」。其中 `preview_brief()` 返回与
 > `export_brief()` 相同的 Markdown 简报字符串但**不落盘**，供调试预览。
 
 `build_markdown_brief` 输出一份清晰的 Markdown 简报（含「基础约束 / 已收集参数 / 产出要求」三节）。
@@ -364,7 +364,7 @@ python scripts/corner_audit.py                         # schema 引用 + 身份 
    - `time_allocation` 逐行核对分钟与占比，且分钟合计须等于 `duration_minutes`、pct 合计 ≈ 1.0
    - `style.output_path_template` / `pos_groups` / `phase_labels`
    - `vocab_targets` 区间、`exam.levels` 标签
-   - §3 交互契约表中每题的 `ask` 标注
+   - SKILL.md「交互契约」表中每题的 `ask` 标注
 4. **内容纯度**：包内任何 `.md` / `.py` / `.json` 都不得出现别的语言配置文件名。
 
 任何一项不符即非零退出。输出只有两种行：`✗` 是报出的不一致（决定退出码），`○` 是「这一段没验」的告知（不影响退出码）。
@@ -395,9 +395,9 @@ from corner_skill import init_skill
 session = init_skill()  # 等价：加载 + 构造 SkillSession
 ```
 
-## 按语法点的题型骨架（由 SKILL.md 附录 A.3 下沉）
+## 按语法点的题型骨架（由 SKILL.md 附录 A 下沉）
 
-由 `SKILL.md` 附录 A.3 下沉而来：一次生成只用到其中几行，正文里不必常驻。
+由 `SKILL.md` 附录 A 下沉而来：一次生成只用到其中几行，正文里不必常驻。
 
 每条语法点给出 3 档难度骨架；使用时把 {S} 换成本次话题，并打上对应 DELE 标签：
 

@@ -32,8 +32,8 @@ formatting deviation (`lint` reports W109; `lint --fix-format` repairs it).
 | `description` | string           | One-line English description. Capitalized, **no trailing period**, length <= 120                      | 39/39 comply                                              |
 | `homepage`    | string           | Upstream homepage or repository URL                                                                   | all 39                                                    |
 | `license`     | string or object | Prefer an SPDX identifier; use `{"identifier": ..., "url": ...}` when unsure                           | `choose` uses `GPL-3.0-only`; `android-cli` the object form |
-| `checkver`    | string or object | How the version is detected, see section 3                                                            | all 39                                                    |
-| `autoupdate`  | object           | How URLs change on a version bump, see section 4                                                      | all 39                                                    |
+| `checkver`    | string or object | How the version is detected, see the "checkver forms" section                                         | all 39                                                    |
+| `autoupdate`  | object           | How URLs change on a version bump, see the "Writing autoupdate" section                               | all 39                                                    |
 
 ### Download and install fields
 

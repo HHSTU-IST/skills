@@ -38,7 +38,7 @@ Package layout:
 - `references/manifest-fields.md` manifest field reference (this repo's rules)
 - `references/recipes.md` when each of the 16 recipes applies, and what it emits
 - `references/lint-rules.md` the 23 rules and how to fix each one
-- `references/gotchas.md` the 13 surprises behind section 7, in full
+- `references/gotchas.md` the 13 surprises behind the "Gotchas" section, in full
 - `references/cli.md` the flags of all three commands, with the invocations
 - `references/porting.md` what this build changes versus the Extras-Plus one
 - `references/coverage.md` the upstream survey behind the catalog, and the gaps
@@ -72,19 +72,19 @@ Every example below is relative to the package root.
   first, and error-level findings block the write (`--force` overrides).
 - **`--repo` is accepted before or after the subcommand** and is rarely
   needed: the installed copy of this bucket outranks the cwd, and a `--repo`
-  that is not a bucket root is refused rather than trusted -- section 7 has
+  that is not a bucket root is refused rather than trusted -- the "Gotchas" section has
   both symptoms.
 - **Never add a `.json` file to this package.** The recipe catalog is data,
   not a manifest, hence `assets/recipes.jsonc`; keep its content strict JSON,
   because the name dodges the CI manifest gate rather than licensing
-  comments (`json-parse` in skill-draft would reject those). Section 7 has
+  comments (`json-parse` in skill-draft would reject those). The "Gotchas" section has
   the mechanism.
 - **README is controlled**: each summary table's header is exactly three
   columns and a missing section skips the sync with an explanation.
   `--section` is validated before anything is written, so a typo fails
-  loudly instead of silently doing nothing; what counts as valid is in
-  section 7, and the names **this** repo uses are in
-  `references/manifest-fields.md` section 8.
+  loudly instead of silently doing nothing; what counts as valid is in the
+  "Gotchas" section, and the names **this** repo uses are in the "How this repo
+  differs from the English-language buckets" section of `references/manifest-fields.md`.
 
 ## The three trigger commands
 
@@ -110,8 +110,9 @@ guess:
 4. Where the entry point is: the exe a shortcut should point at (relative to
    `$dir`, backslashes) and any command-line alias
 5. README section: `跨平台` / `Win 专属` / `开源镜像`, optionally narrowed
-   with a `####` sub-heading such as `外语学习` or `学术研究` (see
-   `references/manifest-fields.md` section 8)
+   with a `####` sub-heading such as `外语学习` or `学术研究` (see the
+   "How this repo differs from the English-language buckets" section of
+   `references/manifest-fields.md`)
 
 An unknown `--section` is rejected up front with the list of valid values,
 rather than writing the manifest and leaving the README untouched. Unsure
@@ -124,7 +125,7 @@ streams the download and computes it; `--hash-from-file <path>` uses a package
 already on disk; if neither is given, run `bin/checkhashes.ps1` afterwards (the
 command prints that hint).
 
-**Tauri `*_x64-setup.exe` has no recipe of its own** -- section 7 has the
+**Tauri `*_x64-setup.exe` has no recipe of its own** -- the "Gotchas" section has the
 reason and the workaround.
 
 **Rhythm**: `--dry-run` to preview, then drop it to write and sync the
@@ -152,8 +153,8 @@ download URL.
 python scripts/scoop_manifest.py upd --name myapp --checkver --apply --rehash
 ```
 
-`--checkver` understands every form tabulated in
-`references/manifest-fields.md` section 3. **The `{"script": ...}` form
+`--checkver` understands every form tabulated in the "checkver forms"
+section of `references/manifest-fields.md`. **The `{"script": ...}` form
 needs a Scoop environment and explicitly reports that it cannot probe
 offline**; use `bin/checkver.ps1` instead.
 
@@ -179,7 +180,7 @@ Line endings are checked repo-wide, not just per manifest: a full `lint`
 also walks the working tree -- skipping `.git/` and the tool caches -- and
 reports every text file that is not CRLF, which is what `.editorconfig`
 demands for `[*]`. That pass is read-only and reaches into directories this
-skill does not own; the traps inside it are in section 7.
+skill does not own; the traps inside it are in the "Gotchas" section.
 
 Rules and their fixes live in `references/lint-rules.md`; the remaining
 flags (`--json`, `--strict`, `--rules`) and the full run are in
@@ -256,6 +257,6 @@ section to `recipes.md` -> run `sm_selftest.py`.
 `lint-rules.md` together, keeping the wording identical.
 
 **Editing docs**: every markdown file in the package passes `rumdl check`;
-finish with `rumdl fmt --no-cache` (section 7). Tables here routinely run
+finish with `rumdl fmt --no-cache` (the "Gotchas" section). Tables here routinely run
 past 80 columns -- the repo's `.rumdl.toml` disables `MD013`, so that is
 fine.

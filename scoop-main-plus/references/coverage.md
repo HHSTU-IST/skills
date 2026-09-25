@@ -22,15 +22,16 @@ Two corpora, both read offline:
   the survey. Quoted separately wherever it disagrees with upstream, which it
   often does.
 - The earlier survey of `$env:Scoop\buckets\extras\bucket` (upstream
-  `ScoopInstaller/Extras`, **2389** manifests, **7853** URLs) is still quoted in
-  section 2, because it is what the original recipes were shaped by.
+  `ScoopInstaller/Extras`, **2389** manifests, **7853** URLs) is still quoted
+  in the "Two buckets, two shapes" section, because it is what the original
+  recipes were shaped by.
 
 Every file is `json.loads`-ed and tallied; nothing is downloaded. "manifests" or
 "files" below means *how many files* show a trait, and one file counts at most
 once per trait. Rows that count URLs instead say so.
 
 Measured 2026-09-20. Upstream moves, so the absolute numbers are a snapshot and
-the proportions are the durable part. Section 11 has the re-run recipe.
+the proportions are the durable part. The "Refreshing the survey" section has the re-run recipe.
 
 ## Two buckets, two shapes
 
@@ -354,7 +355,7 @@ The survey script is deliberately **not** shipped: it is a one-off analysis, and
 keeping it in the package would make it look like a supported tool. To redo it,
 point a read-only script at the bucket to measure and tally the same things --
 top-level keys, the four shape families, architecture combinations, URL
-extensions, `#` fragments, and the install-mechanics table in section 8. If the
+extensions, `#` fragments, and the install-mechanics table in the "Install mechanics" section. If the
 proportions move far enough to invalidate a recipe (say `shortcuts` climbs back
 above 10% and the bin-first default stops being obvious), update the recipe and
 the corresponding row here together, the way `sm_selftest.py` requires for

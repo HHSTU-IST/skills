@@ -73,7 +73,8 @@ regex (scraped from `homepage`), `{"url", "regex"}`, `{"url", "jsonpath",
 "regex", "replace"}`, `{"url", "xpath", ...}` and `{"sourceforge": ...}`.
 **The `{"script": ...}` form needs a Scoop environment and explicitly reports
 that it cannot probe offline**; use `bin/checkver.ps1` instead. The manifest
-side of each form is tabulated in `references/manifest-fields.md` section 3.
+side of each form is tabulated in the "checkver forms" section of
+`references/manifest-fields.md`.
 
 `--print-json` dumps the result instead of writing it, `--dry-run` previews, and
 `--force` lets a change through despite error-level findings.

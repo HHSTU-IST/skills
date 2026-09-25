@@ -29,7 +29,7 @@ larger share of local apps than the upstream proportions would suggest.
 - "manifests" below means *how many files* show a trait, and one file counts at
   most once per trait. Tables that count URLs instead of files say so.
 - Measured 2026-09-19. Upstream moves, so the absolute numbers are a snapshot and
-  the proportions are the durable part. Section 9 has the re-run recipe.
+  the proportions are the durable part. The "Refreshing the survey" section has the re-run recipe.
 - The **local** figures quoted alongside (88 manifests, 62 with `architecture`,
   21 flat `url` + `regex`, 86 with `checkver`, 15 with plaintext `http://`) were
   re-measured against this repo on 2026-09-22 with the shipped `lint` and
@@ -294,14 +294,14 @@ Known gaps, in rough order of how likely they are to bite:
 - **Archives over 2 GB.** aria2 and hash verification degrade, so no recipe is
   tuned for them.
 - **32bit architecture.** The **596** upstream files that pair `32bit` with
-  another architecture are out of scope (section 5). An existing `32bit` +
+  another architecture are out of scope (the "Architecture combinations" section). An existing `32bit` +
   `64bit` manifest still lints and updates cleanly — `gen` simply cannot build a
   new one, since `32bit` is not an accepted `arch` value.
 - **The single `_comment` file.** Not a documented key; `##` is. The linter does
   not currently flag it.
-- **The `checkver` shapes in the bottom rows of section 3.** Around a dozen
+- **The `checkver` shapes in the bottom rows of the "checkver shapes" section.** Around a dozen
   files combine `replace` with something else in a way only that manifest needs,
-  and section 4's last row is five one-off autoupdate shapes. Left to
+  and the last row of the "autoupdate shapes" section is five one-off autoupdate shapes. Left to
   hand-writing by design.
 
 ## Ideas that were measured and rejected
@@ -331,7 +331,7 @@ same idea, and a wrong rule is worse than no rule.
 
 The survey script is deliberately **not** shipped: it is a one-off analysis, and
 keeping it in the package would make it look like a supported tool. To redo it,
-point the corpus path in section 1 at the bucket to measure and tally the same
+point the corpus path in the "Method" section at the bucket to measure and tally the same
 things — top-level keys, the four shape families, and the `#` fragments. If the
 proportions move far enough to invalidate a recipe (say arm64-only manifests
 stop being two files), update the affected recipe and the corresponding row here

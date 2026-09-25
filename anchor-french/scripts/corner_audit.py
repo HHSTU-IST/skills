@@ -194,7 +194,7 @@ def audit(cfg: dict, md: str) -> list[str]:
         )
         if not row:
             fails.append(
-                f"{tag} 附录 A.5 缺行或数值不符: {stem} / {pct_txt} / {slot['minutes']} min"
+                f"{tag} 「环节时间分配与规模备注」缺行或数值不符: {stem} / {pct_txt} / {slot['minutes']} min"
             )
 
     # 5) style
@@ -220,13 +220,13 @@ def audit(cfg: dict, md: str) -> list[str]:
     for q in cfg["question_plan"]:
         row = re.search(rf"^\|\s*{q['id']}\s*\|([^\n]*)$", md, re.MULTILINE)
         if not row:
-            fails.append(f"{tag} §3 交互契约表缺 {q['id']} 行")
+            fails.append(f"{tag} 「交互契约」表缺 {q['id']} 行")
             continue
         line = row.group(1)
         if q["ask"] is False and "不询问" not in line:
-            fails.append(f"{tag} {q['id']} 配置 ask=false，但 §3 表未标注「不询问」")
+            fails.append(f"{tag} {q['id']} 配置 ask=false，但「交互契约」表未标注「不询问」")
         if q["ask"] is True and "不询问" in line:
-            fails.append(f"{tag} {q['id']} 配置 ask=true，但 §3 表标注了「不询问」")
+            fails.append(f"{tag} {q['id']} 配置 ask=true，但「交互契约」表标注了「不询问」")
 
     # 9) 话题机制：题库 + 随机 + 自定义
     pool = cfg.get("topic_pool", [])

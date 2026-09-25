@@ -67,7 +67,7 @@ Every example below is relative to the package root.
   not a manifest, hence `assets/recipes.jsonc`: `*.json` does not match
   `.jsonc`. Keep the content strict JSON, because the name dodges the gate
   rather than licensing comments (`json-parse` in skill-draft would reject
-  those). The CI mechanism is in section 7.
+  those). The CI mechanism is in the "Gotchas" section.
 - **README is controlled**: the header must be exactly the three columns
   `App / Auto-Update ? / Note`, and a missing section skips the sync with an
   explanation. Centering already matches this repo's 5 tables byte for byte, so
@@ -157,7 +157,7 @@ Safety net: the rule engine runs after every change and error-level findings
 `--print-json` dumps the result. `upd` leaves the README alone unless `--readme`
 is passed, which syncs it and keeps the existing note column (for example
 `by @CronusLM`); `--readme` only fires when something else in the manifest
-changed (see section 7).
+changed (see the "Gotchas" section).
 
 ## lint
 
@@ -178,7 +178,7 @@ walks the working tree -- skipping `.git/` only, so `.rumdl_cache/` shows up
 too -- and reports every text file that is not CRLF, which is what
 `.editorconfig` demands for `[*]`. That pass is read-only and reaches into
 directories this skill does not own; `--fix-format` normalises only
-`bucket/*.json` and `README.md`. The traps inside that pass are in section 7.
+`bucket/*.json` and `README.md`. The traps inside that pass are in the "Gotchas" section.
 
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.

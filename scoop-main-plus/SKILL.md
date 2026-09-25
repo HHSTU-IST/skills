@@ -62,7 +62,7 @@ scripts is version-gated, so an older 3.x still runs them.
 - **Never add a `.json` data file inside this skill.** A non-manifest `.json`
   here turns CI red, which is why the catalog is `assets/recipes.jsonc`; use
   `.jsonc` (or a `.py` module) for any further data. The CI mechanism it dodges
-  is in section 7.
+  is in the "Gotchas" section.
 - **Preserve existing order**: `update` only slots **new** fields into their
   canonical position; existing fields keep their place. A full reorder needs an
   explicit `--reorder`.
@@ -70,7 +70,7 @@ scripts is version-gated, so an older 3.x still runs them.
   and error-level findings block the write (`--force` overrides).
 - **This bucket is bin-first**: it installs 39 of its 40 packages through `bin`
   and declares no `shortcuts` at all. Reach for a shortcut only when the package
-  really is a desktop app -- section 7 explains what happens when you do.
+  really is a desktop app -- the "Gotchas" section explains what happens when you do.
 - **README is controlled**: the table lives under `## ⭐️ Summary` with the three
   columns `App / Language / Auto-Update ?`. A missing section skips the sync with
   an explanation, and a column the skill does not recognise is never touched.
@@ -130,7 +130,7 @@ that set `arch_block` (`github-cli-archive`, `toolchain-env`,
 
 **32bit is not supported.** This bucket ships 64bit and arm64 only: `arch`
 accepts just those two, and there is no `--url32` / `--hash32`. What upstream
-still carries is survey data, not an option -- see section 7.
+still carries is survey data, not an option -- see the "Gotchas" section.
 
 **Pick one of three ways to obtain the hash, never invent it**: `--fetch-hash`
 streams the download and computes it; `--hash-from-file <path>` uses a package
@@ -165,7 +165,7 @@ regex (scraped from `homepage`), `{"url", "regex"}`, `{"url", "jsonpath",
 `"reverse": true` is honoured, so a manifest whose candidates run newest-last
 reports the **last** match instead of the first.
 **The `{"script": ...}` form cannot be probed offline**; use `bin/checkver.ps1`
-instead (section 7).
+instead (the "Gotchas" section).
 
 Safety net: the rule engine runs after every change and error-level findings
 **block the write** (`--force` overrides); `--dry-run` previews and
@@ -191,7 +191,7 @@ walks the working tree -- skipping `.git/` and the tool caches -- and reports
 every text file that is not CRLF, which is what `.editorconfig` demands for
 `[*]`. That pass is read-only and reaches into directories this skill does not
 own; `--fix-format` normalises only `bucket/*.json` and `README.md`. The traps
-inside that pass are in section 7.
+inside that pass are in the "Gotchas" section.
 
 Exit code: error-level findings give 1; warnings alone give 0, or 1 with
 `--strict`. Rules and their fixes live in `references/lint-rules.md`.
@@ -339,7 +339,7 @@ to the `recipes` array in `recipes.jsonc` (`id` / `label` / `when` / `builder` /
 `param_docs` -> register a builder of the same name in `BUILDERS` in
 `sm_lib.py` -> add a `## <recipe id>` section to `recipes.md` -> run
 `sm_selftest.py`. Base a new recipe on a population recorded in
-`references/coverage.md`, not on a single manifest, and update section 9 there
+`references/coverage.md`, not on a single manifest, and update the "Recipe to upstream pattern" section there
 in the same pass.
 
 **Adding a rule**: change `RULES` in `sm_lib.py` and the table in

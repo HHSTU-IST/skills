@@ -31,7 +31,7 @@ agent_created: true
 `~/.workbuddy/skills/` 使用。
 
 标准布局、各文件的职责边界、运行时管线（谁解析、谁收集、谁产出）与顶层字段的消费方，都在
-`references/corner-architecture.md`（§0 / §1.6；本包实例取值见 §5）。本节只留跑得起来的那部分。
+`references/corner-architecture.md`（「技能包标准布局」与「顶层键的消费方」两节；本包实例取值见「本包实例取值」）。本节只留跑得起来的那部分。
 
 ```bash
 # 在技能包根目录执行
@@ -124,7 +124,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 - 写入**单个 Markdown 文件**，路径按 `style.output_path_template`（`docs/fr-{topic}.md`）。
   `{topic}` 为法文话题名（如 旅行 → `docs/fr-voyage.md`）；目录不存在则创建。
   若不在该仓库工作，写到当前工作区 `./docs/`。
-- 固定生成「环节时间分配」表（数值取自 `time_allocation`，见附录 A.5）。
+- 固定生成「环节时间分配」表（数值取自 `time_allocation`，见「环节时间分配与规模备注」）。
 - 写入后**尝试执行 `rumdl fmt <文件路径>`** 格式化；若 `rumdl` 不可用或报错，静默跳过（不阻断产出）。
 - 用 **present_files** 打开预览，并附一句简要说明。
 
@@ -167,7 +167,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
   尾部选项永远不可达。
   对策：题库最多 23 项；要再加就同步抬高 `questions_max_per_call`，或拆成两个语义键。
 - **改配置必须同步正文，否则审计直接失败。**
-  现象：改了 JSON 取值后 `corner_audit.py` 报「未出现」或「附录 A.5 缺行或数值不符」。
+  现象：改了 JSON 取值后 `corner_audit.py` 报「未出现」或「环节时间分配与规模备注」缺行或数值不符。
   原因：审计拿正文里的取值与 JSON 逐条比对 —— 时间分配表的占比 / 分钟、词汇量区间
   `25–35`（是**短破折号**不是连字符）、POS 分组名、阶段标签、等级标签、`（6）`，
   都要一字不差。
@@ -186,7 +186,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 ## 附录 A · 生成框架与方法（无法数据化的部分）
 
 > 以下为方法论：话题生成、30 题框架、句型复杂度、规模备注。
-> 题型骨架表已下沉到 `references/corner-architecture.md`（§6）。
+> 题型骨架表已下沉到 `references/corner-architecture.md`（「按语法点的题型骨架」节）。
 > 所有**可选项数据**以 `assets/fr-corner-config.json` 为准，由 `scripts/corner_config.py` 加载；增删选项只改 JSON。
 
 ### 话题生成方法（适用于任何语法点）
@@ -228,7 +228,7 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 ### 按语法点的题型骨架（通用，可替换话题）
 
 每条语法点 3 档难度骨架的完整表格（把 {S} 换成本次话题，再打上对应等级标签）在
-`references/corner-architecture.md`（§6）—— 一次生成只查其中几条，留在正文里
+`references/corner-architecture.md`（「按语法点的题型骨架」节）—— 一次生成只查其中几条，留在正文里
 占的篇幅不划算。
 
 ### 词汇量与句型复杂度（B1–C2）

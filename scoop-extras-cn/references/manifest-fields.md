@@ -9,7 +9,7 @@ as authoritative.
 
 This repo targets Chinese users, so several conventions differ from the
 English-language buckets. Those differences are called out inline and
-summarised in section 8.
+summarised in the "How this repo differs from the English-language buckets" section.
 
 ## File-level conventions
 
@@ -37,8 +37,8 @@ it would be a breaking change for existing users, so it is left as is.
 | `description` | string           | One-line description. **Chinese is expected here**; an English phrase is also fine                    | 57/88 are Chinese (`douyin` is `抖音`)                          |
 | `homepage`    | string           | Upstream homepage or repository URL                                                                   | all 88                                                          |
 | `license`     | string or object | Prefer an SPDX identifier; use `{"identifier": ..., "url": ...}` when unsure                          | 10 use the object form (`clash-mi`, `feishu`); 5 of the 78 strings are free text rather than SPDX |
-| `checkver`    | string or object | How the version is detected, see section 3                                                            | 86/88 (not `edrawmax8`, `mpv.net-cm`)                           |
-| `autoupdate`  | object           | How URLs change on a version bump, see section 4                                                      | 86/88                                                           |
+| `checkver`    | string or object | How the version is detected, see the "checkver forms" section                                         | 86/88 (not `edrawmax8`, `mpv.net-cm`)                           |
+| `autoupdate`  | object           | How URLs change on a version bump, see the "Writing autoupdate" section                               | 86/88                                                           |
 
 ### Download and install fields
 

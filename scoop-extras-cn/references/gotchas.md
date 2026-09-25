@@ -2,7 +2,7 @@
 
 One entry per thing this bucket, its CI or the tooling has pulled on us,
 written as Symptom / Cause / Action so a reader can check whether it is the
-same one. `SKILL.md` section 7 carries the index; add a line here the moment a
+same one. the "Gotchas" section of `SKILL.md` carries the index; add a line here the moment a
 new one shows up.
 
 - **A non-manifest `.json` anywhere in this package turns CI red.**

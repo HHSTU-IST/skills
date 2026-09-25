@@ -31,8 +31,8 @@ formatting deviation (`lint` reports W109; `lint --fix-format` repairs it).
 | `description` | string           | One-line English description. Capitalized, **no trailing period**, length <= 120                      | 55/56 comply (`affinity` ends with a period)                     |
 | `homepage`    | string           | Upstream homepage or repository URL                                                                   | all 56                                                           |
 | `license`     | string or object | Prefer an SPDX identifier; use `{"identifier": ..., "url": ...}` when unsure                          | `veracrypt` uses `"Apache-2.0"`; `bitcomet` uses the object form |
-| `checkver`    | string or object | How the version is detected, see section 3                                                            | all 56                                                           |
-| `autoupdate`  | object           | How URLs change on a version bump, see section 4                                                      | all 56                                                           |
+| `checkver`    | string or object | How the version is detected, see the "checkver forms" section                                         | all 56                                                           |
+| `autoupdate`  | object           | How URLs change on a version bump, see the "Writing autoupdate" section                               | all 56                                                           |
 
 ### Download and install fields
 

@@ -24,7 +24,7 @@ agent_created: true
 
 | 选项 | 追问 | 安装命令（示意） |
 | --- | --- | --- |
-| `micromamba` / `mamba` | **必须再问具体虚拟环境名**（见第 2 节） | `micromamba install -n <env> -c conda-forge <pkg> -y` |
+| `micromamba` / `mamba` | **必须再问具体虚拟环境名**（见「运行脚本」） | `micromamba install -n <env> -c conda-forge <pkg> -y` |
 | `uv` | 默认仓库内 `.venv` | `uv add <pkg>` / `uv sync` |
 
 **两条路都不通时（本机没有 micromamba / mamba / conda，也不打算用 uv），
@@ -32,7 +32,7 @@ agent_created: true
 **不许退回 `pip`**，也不许用 `pip` 往系统解释器或临时 venv 里塞包补缺。
 
 本机最常用的选择是 `kaggle` 环境，但它**只是候选之一**——具体用哪个，一律由
-**第 2 节的对话框**确认，文档与脚本里都不写死。
+**「运行脚本」的对话框**确认，文档与脚本里都不写死。
 环境目录同样**不要写死**，运行时扫描 `PATH` 与环境变量现取：
 
 ```bash
@@ -71,7 +71,7 @@ micromamba run -n <env> python -c "import <mod>"    # 逐个试探依赖是否�
 | 逃生项 | **必须有一项「暂停，我自己装」**，选中即刻停止任务；**缺包的候选环境照实列出，但不许顺手 pip 补缺** |
 | 排序 | 依赖已齐全的环境放第一项，并标注「推荐」 |
 | 数量上限 | 单个问题最多 4 项（宿主上限）；候选多于 3 个时分批追问，**每批都要带逃生项** |
-| 兜底口子 | 宿主 UI 总会额外给一个自由输入框，用户可当场敲一个不在列表里的环境名；想改用 `uv` / 项目内 `.venv` 的走这个口子或选暂停项，再按第 1 节处理 |
+| 兜底口子 | 宿主 UI 总会额外给一个自由输入框，用户可当场敲一个不在列表里的环境名；想改用 `uv` / 项目内 `.venv` 的走这个口子或选暂停项，再按「包管理器」处理 |
 | `header` | ≤ 12 字符，例如 `运行环境` |
 
 **④ 在选定环境里执行**：
@@ -80,7 +80,7 @@ micromamba run -n <env> python -c "import <mod>"    # 逐个试探依赖是否�
 micromamba run -n <选定的环境> python <脚本>
 ```
 
-用的是 `mamba` / `conda` 就换对应命令。**任何时候都不用 `pip`**（见第 1 节）——
+用的是 `mamba` / `conda` 就换对应命令。**任何时候都不用 `pip`**（见「包管理器」）——
 包括所有候选环境都缺依赖、眼看就要跑不起来的时候。
 
 > 选中「暂停，我自己装」不是失败出口，而是合法的收尾：**报告已探明的环境清单，
@@ -88,7 +88,7 @@ micromamba run -n <选定的环境> python <脚本>
 > 也不要挑一个依赖不全的环境硬跑。
 >
 > 这条出口的含义是**把「装包」这一步交回给用户**，不是「用户点过头就允许 pip」：
-> 后续真要装，仍然只走第 1 节的 micromamba / uv（用 micromamba 就先拿到环境名），
+> 后续真要装，仍然只走「包管理器」的 micromamba / uv（用 micromamba 就先拿到环境名），
 > **整条链路上都不出现 `pip`**。
 
 同一会话里已选定的环境可以沿用，不必每次重问；一旦换了脚本、换了依赖集，
@@ -181,7 +181,7 @@ ruff format code python --exclude "*.ipynb"
 ruff check  code python --no-fix --no-fix-only --exclude "*.ipynb"
 
 # 3) 类型检查 —— 必须指向装有依赖的解释器
-#    环境名用第 2 节对话框选定的那个（现取，勿写死路径）
+#    环境名用「运行脚本」对话框选定的那个（现取，勿写死路径）
 micromamba run -n <选定的环境> ty check code python
 ```
 
@@ -201,7 +201,7 @@ micromamba run -n <选定的环境> ty check code python
   文档里写死版本会在升级后变成误导信息。
 
 工具自己会咬人的那几处 —— `ruff check` 默认落盘、`ty` 裸跑刷假警报、子目录
-`pyproject.toml` 覆盖根规则集 —— 见第 6 节。
+`pyproject.toml` 覆盖根规则集 —— 见「踩坑点」。
 
 ## Markdown 文档检查：rumdl（**改完本技能自身的 .md 后必跑**）
 
@@ -227,7 +227,7 @@ rumdl fmt skills/project-py/
 rumdl check skills/project-py/
 ```
 
-> `--fix` / `fmt` 的作用范围实测严格受限（见第 6 节），但仍要核对范围 ——
+> `--fix` / `fmt` 的作用范围实测严格受限（见「踩坑点」），但仍要核对范围 ——
 > 「不给路径」等于扫全仓；`-f` 也不是预演。
 
 **注意**：
@@ -257,7 +257,7 @@ rumdl check skills/project-py/
 - **`ty check` 裸跑刷出一片假警报。**
   现象：普通项目里满屏 `unresolved-import`。
   原因：`ty` 默认拿系统 Python 当检查环境，那里没有项目依赖。
-  对策：一律 `micromamba run -n <选定环境> ty check …`，环境名由第 2 节对话框给出。
+  对策：一律 `micromamba run -n <选定环境> ty check …`，环境名由「运行脚本」对话框给出。
 - **`ruff` 会连 notebook 一起查。**
   现象：只改了 `.py`，却报出 `.ipynb` 的问题。
   原因：`ruff` 原生解析 `.ipynb`，不排除就会一并纳入检查。
@@ -279,7 +279,7 @@ rumdl check skills/project-py/
 - **`ty.toml` 里写死解释器路径比不配置更糟。**
   现象：`ty` 直接以 `Invalid environment.python setting` 退出（exit 2）。
   原因：路径在换机或升级后失效，`ty` 不降级，而是报错退出。
-  对策：照第 1 节，路径运行时解析，不写死。
+  对策：照「包管理器」，路径运行时解析，不写死。
 
 ## 检查清单
 
