@@ -40,8 +40,8 @@ python scripts/corner_skill.py           # 驱动 intake 并导出简报
 python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 / 纯度审计
 ```
 
-`corner_audit.py` 是唯一的机械闸门，四段依次跑、任一段失败即非零退出：schema 引用 → 包身份 →
-本文件 ↔ 配置取值 → 内容纯度。
+`corner_audit.py` 是唯一的机械闸门，四段依次跑：schema 引用 → 包身份 → 本文件 ↔ 配置取值 → 内容纯度。
+报出不一致时退出码 `1`；自检自身跑不下去（包布局不对、配置或正文读不了）时退出码 `2`。
 
 ## 交互契约（intake）
 
@@ -125,7 +125,8 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
   `{topic}` 为法文话题名（如 旅行 → `docs/fr-voyage.md`）；目录不存在则创建。
   若不在该仓库工作，写到当前工作区 `./docs/`。
 - 固定生成「环节时间分配」表（数值取自 `time_allocation`，见「环节时间分配与规模备注」）。
-- 写入后**尝试执行 `rumdl fmt <文件路径>`** 格式化；若 `rumdl` 不可用或报错，静默跳过（不阻断产出）。
+- 写入后**尝试执行 `rumdl fmt <文件路径>`** 格式化；若 `rumdl` 不可用或报错，跳过并在交付说明里
+  提一句「未格式化」（不阻断产出）。
 - 用 **present_files** 打开预览，并附一句简要说明。
 
 ## 风格约定

@@ -1,3 +1,15 @@
+"""本包解析层：JSON → `SkillConfig` + 查询 API + 身份常量（仅标准库）。
+
+这一层只做「读 JSON → 校验 → 归一化为 dataclass」，不硬编码任何面向人的文案，
+也不调用 LLM。身份常量（`SKILL_NAME` / `LANG` / `DEFAULT_CONFIG_NAME`）是本包与
+同族其它语言包**唯一允许的差异**。
+
+退出码（`python scripts/corner_config.py [配置路径]`，演示入口）：
+`0` 加载并打印成功；`2` 包布局不对或配置读不了。作为库被 `corner_audit.py` /
+`corner_skill.py` 导入时本模块不自行决定退出码 —— 错误一律以 `ConfigError` 抛出，
+由调用方翻译成上面同一套约定。
+"""
+
 from __future__ import annotations
 
 import json
@@ -839,7 +851,7 @@ def load_config(path: str | Path | None = None) -> SkillConfig:
     return config
 
 
-if __name__ == "__main__":
+def _demo() -> None:
     # 自检：加载并打印关键派生结果（默认在资产目录内探测配置）
     import sys
 
@@ -876,3 +888,13 @@ if __name__ == "__main__":
     }
     print("=== Markdown 简报预览 ===")
     print(cfg.build_markdown_brief(sample))
+
+
+if __name__ == "__main__":
+    # 演示入口；加载失败以一条 ✗ + 退出码 2 收尾（与另两个脚本同一约定），不抛栈。
+    try:
+        _demo()
+    except ConfigError as exc:
+        print(f"{SKILL_NAME} ({LANG}): 加载失败")
+        print("  ✗", exc)
+        raise SystemExit(2) from None

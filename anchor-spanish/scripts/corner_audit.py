@@ -13,11 +13,14 @@
    版本号反过来——唯一真源是配置 `meta.version`，`SKILL.md` 不许再写一份；
 4. 内容纯度：包内不得出现其它语言的配置文件名（防止误拷他语言资产）。
 
-四段**全部跑完才收尾**，一次报全（某一段失败不截断后续段）；任一失败即非零退出。
-例外只有两条：配置或 `SKILL.md` 正文读不了时直接收尾 —— 二者是其余各段的公共输入，
-报一条比连带出一串无意义的假发现好。失败一律以一条 `✗` 报出，不抛栈 —— 读不了的
-文件（非 UTF-8 / 不可读）与不合法的配置 JSON 也算一类发现；`$schema` 指向远端时
-**不校验**，改以一条 `○` 说明（**跳过 ≠ 通过**）。
+四段**全部跑完才收尾**，一次报全（某一段失败不截断后续段）。失败一律以一条 `✗` 报出，
+不抛栈 —— 读不了的文件（非 UTF-8 / 不可读）与不合法的配置 JSON 也算一类发现；
+`$schema` 指向远端时**不校验**，改以一条 `○` 说明（**跳过 ≠ 通过**）。
+
+退出码：`0` 干净；`1` 有 finding（文档 ↔ 配置 ↔ 身份对不上）；
+`2` **自检自身跑不下去** —— 包布局不对，或配置 / `SKILL.md` 正文读不了。两类必须分得开：
+`1` 要你去改包，`2` 要你先修好自检的输入。后者直接收尾，因为配置与正文是其余各段的公共
+输入，报一条比连带出一串无意义的假发现好。
 """
 
 from __future__ import annotations
@@ -224,9 +227,9 @@ def audit(cfg: dict, md: str) -> list[str]:
             continue
         line = row.group(1)
         if q["ask"] is False and "不询问" not in line:
-            fails.append(f"{tag} {q['id']} 配置 ask=false，但「交互契约」表未标注「不询问」")
+            fails.append(f"{tag} {q['id']} ask=false，但「交互契约」表未标注「不询问」")
         if q["ask"] is True and "不询问" in line:
-            fails.append(f"{tag} {q['id']} 配置 ask=true，但「交互契约」表标注了「不询问」")
+            fails.append(f"{tag} {q['id']} ask=true，但「交互契约」表标注了「不询问」")
 
     # 9) 话题机制：题库 + 随机 + 自定义
     pool = cfg.get("topic_pool", [])
@@ -275,48 +278,60 @@ def audit(cfg: dict, md: str) -> list[str]:
     return fails
 
 
-def _report(fails: list[str], notes: list[str] | None = None) -> int:
-    """统一收尾：逐条打 `✗`，再逐条打 `○` 说明；返回退出码（0 = 干净）。
+def _report(
+    fails: list[str], notes: list[str] | None = None, *, code: int | None = None
+) -> int:
+    """统一收尾：逐条打 `✗`，再逐条打 `○` 说明；返回退出码。
 
     `✗` 是发现的不一致，决定退出码；`○` 是「这一段没验」的告知，不影响退出码 ——
     两种行必须看得出区别，否则「跳过」会被读成「通过」。
+    `code=None` 时按「有 fails 即 1」推；`2` 留给「自检自身跑不下去」，那一档
+    连表头也换掉，免得被读成「只是有 1 处不一致」。
     """
-    print(
-        f"{SKILL_NAME} ({LANG}): {'OK' if not fails else str(len(fails)) + ' 处不一致'}"
-    )
+    if code is None:
+        code = 1 if fails else 0
+    if code == 2:
+        head = "自检无法完成"
+    elif fails:
+        head = f"{len(fails)} 处不一致"
+    else:
+        head = "OK"
+    print(f"{SKILL_NAME} ({LANG}): {head}")
     for line in fails:
         print("  ✗", line)
     for line in notes or []:
         print("  ○", line)
-    return 1 if fails else 0
+    return code
 
 
 def main() -> int:
     """三段闸门：schema（引用 + 必填顶层键）→ 身份 → 文档 ↔ 配置 / 内容纯度。
 
     **三段全部跑完再收尾**，一次报全所有不一致（某段失败不截断后续段）—— 否则使用者
-    要经历「改一处 → 重跑 → 又冒出一类新问题」。任一不一致即非零退出。
+    要经历「改一处 → 重跑 → 又冒出一类新问题」。退出码见模块 docstring：
+    `1` 是包内容的 finding，`2` 是自检自己跑不下去。
     """
+    # 以下五处都是「自检自身跑不下去」（退出码 2），不是包内容的 finding（1）：
+    # 配置与正文是各段的公共输入，读不到就无从审起。
     try:
         cfg_path = config_path()
     except ConfigError as exc:
-        return _report([str(exc)])
+        return _report([str(exc)], code=2)
     if not cfg_path.is_file():
-        print(f"{SKILL_NAME} ({LANG}): 配置缺失")
-        print(f"  ✗ 缺少 {cfg_path.as_posix()}")
-        return 1
+        return _report([f"缺少 {cfg_path.as_posix()}"], code=2)
     try:
         cfg = json.loads(read_text_or_error(cfg_path, "配置文件"))
     except ConfigError as exc:
-        return _report([str(exc)])
+        return _report([str(exc)], code=2)
     except json.JSONDecodeError as exc:
-        return _report([f"配置不是合法 JSON（{exc.msg}）"])
+        return _report([f"配置不是合法 JSON（{exc.msg}）"], code=2)
     if not isinstance(cfg, dict):
-        return _report([f"配置顶层必须是 JSON 对象，实际为 {type(cfg).__name__}"])
+        return _report(
+            [f"配置顶层必须是 JSON 对象，实际为 {type(cfg).__name__}"], code=2
+        )
     md, err = _read(skill_root() / SKILL_MD_NAME, "技能包正文")
     if err:
-        # 正文是身份段与文档段的公共输入，读不了就三段都无从谈起
-        return _report([f"[{SKILL_NAME}] {err}"])
+        return _report([f"[{SKILL_NAME}] {err}"], code=2)
     fails: list[str] = []
     fails.extend(audit_schema(cfg))
     fails.extend(audit_identity(cfg, md))

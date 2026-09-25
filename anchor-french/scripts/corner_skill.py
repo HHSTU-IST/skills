@@ -2,6 +2,9 @@
 
 语言身份（技能包名 / 语言键 / 默认配置名）全部由 `corner_config` 里的常量决定，
 本模块不做任何语言分派，也不会去探测别的语言配置。
+
+退出码（`python scripts/corner_skill.py [selftest]`）：
+`0` 干净（演示跑完 / 自检全过）；`1` 自检报出不一致；`2` 用法错（只认 `selftest`）。
 """
 
 from __future__ import annotations
@@ -117,6 +120,17 @@ def init_skill(*, config_path: str | None = None) -> SkillSession:
     return SkillSession(config=load_config(config_path))
 
 
+# ─────────────────────── 自检工具（供 __main__ 使用） ───────────────────────
+
+
+def _check(cond: object, message: str) -> None:
+    """自检断言。不用 `assert` —— `python -O` 会把 `assert` 整条删掉，
+    自检会照旧打印「全部通过 ✓」并退出 0，实际一条都没验。"""
+    if not cond:
+        print(f"  ✗ {message}")
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
     # 用法：
     #   python scripts/corner_skill.py            # 演示：初始化 -> 模拟 intake -> 导出简报
@@ -178,8 +192,8 @@ if __name__ == "__main__":
         )
         s_a = SkillSession(_dc.replace(session.config, question_plan=plan_a))
         drive(s_a)
-        assert s_a.is_intake_done(), "intake 未完成"
-        assert s_a.answers.get("topics"), "auto_recommend 未自动填值 topics"
+        _check(s_a.is_intake_done(), "intake 未完成")
+        _check(s_a.answers.get("topics"), "auto_recommend 未自动填值 topics")
         print("  ✓ topic 源 auto_recommend：topics =", s_a.answers["topics"])
 
         # 2) 非 topic 源（level）→ auto_recommend，验证走 _resolve_options 前 N 分支
@@ -189,11 +203,11 @@ if __name__ == "__main__":
         )
         s_b = SkillSession(_dc.replace(session.config, question_plan=plan_b))
         drive(s_b)
-        assert s_b.answers.get("level"), "auto_recommend 未自动填值 level"
+        _check(s_b.answers.get("level"), "auto_recommend 未自动填值 level")
         print("  ✓ 非 topic 源 auto_recommend：level =", s_b.answers["level"])
 
         # 3) topic_options() 公共 API 可用（assets 保留了 topic_dimensions 数据）
-        assert session.config.topic_options(), "topic_options() 返回空"
+        _check(session.config.topic_options(), "topic_options() 返回空")
         print(
             "  ✓ topic_options() 公共 API：",
             [o.label for o in session.config.topic_options()],
