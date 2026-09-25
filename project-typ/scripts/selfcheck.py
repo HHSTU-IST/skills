@@ -167,7 +167,7 @@ def check_docs(source: str) -> list[str]:
 
 
 def check_symbols(source: str) -> list[str]:
-    """The symbols the reuse subsection tells the agent to reuse must exist in packages.md.
+    """Symbols the reuse subsection tells the agent to reuse must exist in packages.md.
 
     Only `name(...)` inside backticks is taken, so native Typst calls quoted
     elsewhere in the body (``image()``, ``read()``) never enter the comparison.
