@@ -75,7 +75,7 @@ The third one is the extension path: adding a file type normally means editing `
 
 ### project-py
 
-Triggers: *Python, py, ruff, ty, lint, micromamba, uv, matplotlib, subplots, plus the Chinese terms for type checking and package management.*
+Triggers: *Python, py, ruff, ty, lint, micromamba, mamba, conda, uv, matplotlib, subplots, plus the Chinese terms for type checking, package management, running a script and virtual environments.*
 
 ```text
 Add error bars to these plots and clean up the figure code.
@@ -262,7 +262,7 @@ Every file type gets a three-stage pipeline — builtin check, repair, verify �
 
 Adding a file type normally means editing `scripts/file-types.json` only, with no code change; in-process checks go into `scripts/checkers.py`. The package uses the Python standard library and nothing else, so it runs on any machine.
 
-`SKILL.md` also carries a long "gate details" section recording the traps that cost real debugging time — why `oxlint` needs `--deny-warnings`, why `oxipng`'s exit code cannot be trusted, why a `.jsonc` name is sometimes deliberate rather than a typo.
+`SKILL.md` also carries a long `Gotchas` section recording the traps that cost real debugging time — why `oxlint` needs `--deny-warnings`, why `oxipng`'s exit code cannot be trusted, why a `.jsonc` name is sometimes deliberate rather than a typo.
 
 The flow, with the loop back into the gate drawn where it really happens:
 
@@ -283,7 +283,7 @@ flowchart TD
 
 ## Project conventions
 
-These three encode house rules for a separate lectures repository. The first two are passive: they describe conventions and ask before acting, but ship no tooling of their own. `project-tex` is the exception among them — it ships a checker, so it has a mechanical half as well.
+These three encode house rules for a separate lectures repository. The first two only describe conventions: they ask before acting, but never inspect the files you write. `project-tex` is the exception among them — it ships a checker, so it has a mechanical half as well.
 
 ### project-py
 
@@ -592,11 +592,14 @@ flowchart TD
 Each skill validates itself offline:
 
 ```bash
-python scripts/sm_selftest.py            # Scoop skills: full self-check
-python scripts/verify.py .               # skill-draft: gate every file
+python scripts/sm_selftest.py              # Scoop skills: full self-check
+python scripts/verify.py .                 # skill-draft: gate every file
+python scripts/selfcheck.py                # project-py / project-typ: identity, doc pointers, symbols
+python scripts/check_style.py --selfcheck  # project-tex: script ↔ rule table, both ways
+python scripts/corner_audit.py             # anchor-*: identity, schema, docs ↔ config, purity
 ```
 
-The self-checks are not decoration. They enforce recipe ↔ builder coverage both ways, docs ↔ code consistency (the lint-rule table must match the code word for word), round-trip serialization against the real bucket, README sync idempotence, and the rule that a skill's `name` equals its directory name.
+The self-checks are not decoration. They enforce recipe ↔ builder coverage both ways, docs ↔ code consistency (`project-tex`'s rule table must match the code word for word, and `project-py` / `project-typ` reconcile their own checklists against the rules), round-trip serialization against the real bucket, README sync idempotence, and, in every package, the rules that `SKILL.md`'s `name` equals the directory name and that every file it references really exists.
 
 ### Two conventions worth knowing before you edit
 

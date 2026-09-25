@@ -8,7 +8,8 @@
 > - 一致性守卫：`scripts/corner_audit.py`（文档 ↔ 配置 + 包身份 / 内容纯度）
 > - 工作流正文：`SKILL.md`；生成框架与方法见其「附录 A · 生成框架与方法」
 >
-> **本包只服务西班牙语。** 其中不含任何其它语言的配置、分支或文案；其它语言角是各自独立的技能包，彼此不共享文件、不做交叉校验。
+> **本包只服务西班牙语。** 其中不含任何其它语言的配置、分支或文案。
+> 其它语言角是各自独立的技能包，彼此不共享文件、不做交叉校验。
 
 ## 技能包标准布局
 
@@ -28,7 +29,8 @@ anchor-spanish/
     └── corner-config.schema.v1.json   配置的 JSON Schema（编辑器补全 / 校验，跨包一致）
 ```
 
-解析层用 `skill_root()` / `assets_dir()` 定位文件：脚本**必须**位于 `<skill>/scripts/`、与 `SKILL.md` 同级，否则直接报错（已不再兼容历史上的扁平布局）。
+解析层用 `skill_root()` / `assets_dir()` 定位文件。脚本**必须**位于 `<skill>/scripts/`、与 `SKILL.md` 同级，
+否则直接报错（已不再兼容历史上的扁平布局）。
 
 运行命令（在技能包根目录执行）：
 
@@ -43,12 +45,17 @@ python scripts/corner_audit.py       # 文档 ↔ 配置 + 包身份 / 纯度审
 
 早期把「可选项 / 参数 / 配置项」硬编码进 Markdown 正文，正文一改就要全文核对，且数据无法被程序读取。现统一为：
 
-- **单一结构真源**：所有可选项、提问编排、风格与文案都在 `assets/es-corner-config.json`，增删选项只改 JSON，`SKILL.md` 无需改动；
-- **单一解析层**：`scripts/corner_config.py` 只做「JSON → `SkillConfig` + 查询 API」，展示文案全部来自 `style.i18n`，模块内不硬编码任何文案；
-- **语言专一**：本包只认 `es-corner-config.json`，函数签名里没有 `lang` 参数，也不做多语言探测——误读到别的语言配置本身就是错误；
+- **单一结构真源**：所有可选项、提问编排、风格与文案都在 `assets/es-corner-config.json`。
+  增删选项只改 JSON，`SKILL.md` 无需改动；
+- **单一解析层**：`scripts/corner_config.py` 只做「JSON → `SkillConfig` + 查询 API」。
+  展示文案全部来自 `style.i18n`，模块内不硬编码任何文案；
+- **语言专一**：本包只认 `es-corner-config.json`，函数签名里没有 `lang` 参数，也不做多语言探测。
+  误读到别的语言配置本身就是错误；
 - **可测试**：`SkillConfig` 是纯数据对象，可单测、可回显；
-- **编辑器友好**：`assets/` 内附 `corner-config.schema.v1.json`（JSON Schema draft 2020-12），编辑器据此对配置做补全与实时校验；该 schema 与语言无关，各包逐字节一致；
-- **主体与生成解耦**：intake 完成后由 `export_brief()` 导出 Markdown 简报（`es-corner-brief.md`），skill 主体读取该文件产出主持脚本，不依赖任何 LLM / openai。
+- **编辑器友好**：`assets/` 内附 `corner-config.schema.v1.json`（JSON Schema draft 2020-12），
+  编辑器据此对配置做补全与实时校验；该 schema 与语言无关，各包逐字节一致；
+- **主体与生成解耦**：intake 完成后由 `export_brief()` 导出 Markdown 简报（`es-corner-brief.md`）。
+  skill 主体读取该文件产出主持脚本，不依赖任何 LLM / openai。
 
 ## 运行时管线（谁负责什么）
 
@@ -112,7 +119,8 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 }
 ```
 
-- `ask_options_per_question=6`：单个 AskUserQuestion 选项上限；超过则按 6 个一组拆成多个子问题（id 形如 `Q1#1`、`Q1#2`）。
+- `ask_options_per_question=6`：单个 AskUserQuestion 选项上限。
+  超过则按 6 个一组拆成多个子问题（id 形如 `Q1#1`、`Q1#2`）。
 - `questions_max_per_call=4`：单次调用最多提问数（与工具限制对齐）。
 
 ### `grammar_points`（依赖解析底座）
@@ -149,7 +157,12 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 | `mode`             | `select`（询问）或 `auto_recommend`（自动推荐）                                                                             |
 | `allow_random`     | 为 true 时在选项首位追加「🎲 随机选一个」哨兵项（`__random__`），由 `expand_choices()` 展开为题库随机话题                   |
 
-> 本包 `question_plan` 的五题：Q1 一级语法点 → Q2 二级条目（依赖 Q1）→ Q3 水平 → Q4 话题（`ask:true, mode:"select"`，选项来自 `topic_pool`，同时开启 `allow_custom` 与 `allow_random`）→ Q5 规模。若日后要改为不询问，把该问题设为 `ask:false, mode:"auto_recommend"` 即可（此时由 `ask_next()` 调用 `auto_recommend_choices()` 按 source 填值：topic_pool 走随机推荐，其它源取前 N 个候选），解析层无需改动。
+> 本包 `question_plan` 的五题：Q1 一级语法点 → Q2 二级条目（依赖 Q1）→ Q3 水平 →
+> Q4 话题（`ask:true, mode:"select"`，选项来自 `topic_pool`，同时开启 `allow_custom` 与 `allow_random`）→ Q5 规模。
+>
+> 若日后要改为不询问，把该问题设为 `ask:false, mode:"auto_recommend"` —— 此时由
+> `ask_next()` 调用 `auto_recommend_choices()` 按 source 填值（topic_pool 走随机推荐，其它源取前 N 个候选），
+> 解析层无需改动。
 
 ### `style.i18n`（文案外置的关键）
 
@@ -171,7 +184,8 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 | `rubric_line`                                                                   | 评分 rubric 行     | `{level}` `{abilities}` `{feature}` |
 | `no_hr_rule`                                                                    | 风格约束行         | —                                   |
 
-> 文案一律不含行首 `-` 前缀（列表符由解析层统一添加）；`structure_line` / `vocab_note_line` 例外，由解析层以 `-` 前缀拼装。
+> 文案一律不含行首 `-` 前缀（列表符由解析层统一添加）。
+> `structure_line` / `vocab_note_line` 例外，由解析层以 `-` 前缀拼装。
 
 ### 包专属键
 
@@ -182,7 +196,9 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 | `style.pure_spanish` | `true` |
 
 - 该键仅供 skill 正文与人工阅读时判别产出语言，**解析层不读取**（`scripts/corner_config.py` 无需任何分支）。
-- 其余 `style` 键（`no_hr` / `no_full_line_bold` / `output_path_template` / `pos_groups[]` / `phase_labels{}` / `section_labels{}` / `i18n{}`）为通用键，仅取值不同。
+- 其余 `style` 键为通用键，仅取值不同：
+  - `no_hr` / `no_full_line_bold` / `output_path_template`
+  - `pos_groups[]` / `phase_labels{}` / `section_labels{}` / `i18n{}`
 
 ### 顶层键的消费方
 
@@ -207,7 +223,8 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 
 `load_config(path: str | Path | None = None) -> SkillConfig`
 
-- `path=None`：固定读取 `assets_dir() / DEFAULT_CONFIG_NAME`，即 `<skill>/assets/es-corner-config.json`，不做任何探测或回退；
+- `path=None`：固定读取 `assets_dir() / DEFAULT_CONFIG_NAME`，即
+  `<skill>/assets/es-corner-config.json`，不做任何探测或回退；
 - 模块**仅依赖标准库**（`json` / `dataclasses` / `pathlib` / `typing`），无第三方依赖。
 
 ### 处理（Transform）
@@ -216,7 +233,8 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 
 - `ConfigError`：统一包装所有结构 / 取值 / 布局错误，由 skill 主体捕获；
 - `Option` / `GrammarPoint` / `Constraint` / `TimeSlot` / `QuestionSpec`：不可变值对象；
-- `SkillConfig`（`frozen`）：构建时生成 `_grammar_index`（一级 id → `GrammarPoint`）供 O(1) 查询；`exam` 字段承载评分体系。
+- `SkillConfig`（`frozen`）：构建时生成 `_grammar_index`（一级 id → `GrammarPoint`）供 O(1) 查询。
+  `exam` 字段承载评分体系。
 
 ### 输出（Output）
 
@@ -238,9 +256,12 @@ assets/es-corner-config.json   唯一数据源（可选项 + 提问编排 + 风�
 | `build_markdown_brief(answers) -> str`                    | **Markdown 简报（交给 skill 主体读取）**，文案全部取自 `style.i18n`          |
 | `label_of_level(id)` / `label_of_scale(id)`               | id → 展示标签                                                                |
 
-> 上面是 `SkillConfig`（corner_config.py）的查询 API。下方 `SkillSession`（corner_skill.py）的公开方法见 §3.2–§3.3；其中 `preview_brief()` 返回与 `export_brief()` 相同的 Markdown 简报字符串但**不落盘**，供调试预览。
+> 上面是 `SkillConfig`（corner_config.py）的查询 API。
+> 下方 `SkillSession`（corner_skill.py）的公开方法见 §3.2–§3.3。其中 `preview_brief()` 返回与
+> `export_brief()` 相同的 Markdown 简报字符串但**不落盘**，供调试预览。
 
-`build_markdown_brief` 输出一份清晰的 Markdown 简报（含「基础约束 / 已收集参数 / 产出要求」三节），由 `SkillSession.export_brief()` 落盘为 `meta.brief_filename`，供 skill 主体读取后生成主持脚本。
+`build_markdown_brief` 输出一份清晰的 Markdown 简报（含「基础约束 / 已收集参数 / 产出要求」三节）。
+由 `SkillSession.export_brief()` 落盘为 `meta.brief_filename`，供 skill 主体读取后生成主持脚本。
 
 ## JSON ↔ skill 主体数据接口与调用约定
 
@@ -256,7 +277,8 @@ session = init_skill()  # 等价：加载 + 构造 SkillSession
 session = init_skill(config_path="…")  # 显式指定配置（测试 / 多套配置场景）
 ```
 
-**契约**：skill 主体**从不直接读取 JSON**；一切访问经由 `SkillConfig` 查询 API。JSON 格式升级（增删字段、改结构）只要 `SkillConfig` 接口不变，主体逻辑无需改动。
+**契约**：skill 主体**从不直接读取 JSON**，一切访问经由 `SkillConfig` 查询 API。
+JSON 格式升级（增删字段、改结构）只要 `SkillConfig` 接口不变，主体逻辑无需改动。
 
 ### 交互收集（intake，逐题一问一答）
 
@@ -269,10 +291,16 @@ loop:
         session.submit(chunk["id"], chosen_values)   # chosen = 选中项的 value(id)
 ```
 
-- `ask_next()` 一次返回**当前问题所有分组**（`Q1` 超 5 选项 → `[Q1#1, Q1#2]`）；宿主须对**全部分组**作答后再调用下一次 `ask_next()`。
-- `submit(question_id, choices)`：`question_id` 形如 `Q1` 或 `Q1#2`，自动归并到父 `key`；`choices` 是选中项的 **`value`（id）** 列表；多分组去重合并；超 `max_choices` 抛 `ConfigError`。
-- `allow_random` 的 Q4：选项首位是「🎲 随机选一个」哨兵；`submit()` 调用 `expand_choices()` 把哨兵展开为题库随机话题、把题库 id 转为可读标签，用户自定义输入原样保留。
-- `auto_recommend` 的节点（`ask=false`）：由 `ask_next()` 内部调用 `auto_recommend_choices()` 填值，不向用户提问；`topic_pool`/`allow_random` 来源走随机话题推荐，其它来源取解析出的前 N 个候选（单选 1 个、多选取 `max_choices`）。本包当前配置未启用此模式。
+- `ask_next()` 一次返回**当前问题所有分组**（`Q1` 超 5 选项 → `[Q1#1, Q1#2]`）。
+  宿主须对**全部分组**作答后再调用下一次 `ask_next()`。
+- `submit(question_id, choices)`：`question_id` 形如 `Q1` 或 `Q1#2`，自动归并到父 `key`。
+  `choices` 是选中项的 **`value`（id）** 列表；多分组去重合并；超 `max_choices` 抛 `ConfigError`。
+- `allow_random` 的 Q4：选项首位是「🎲 随机选一个」哨兵。
+  `submit()` 调用 `expand_choices()` 把哨兵展开为题库随机话题、把题库 id 转为可读标签，
+  用户自定义输入原样保留。
+- `auto_recommend` 的节点（`ask=false`）：由 `ask_next()` 内部调用 `auto_recommend_choices()` 填值，不向用户提问。
+  `topic_pool`/`allow_random` 来源走随机话题推荐，其它来源取解析出的前 N 个候选（单选 1 个、多选取 `max_choices`）。
+  本包当前配置未启用此模式。
 
 ### 导出简报（交给 skill 主体读取，不依赖 LLM / openai）
 
@@ -281,7 +309,8 @@ if session.is_intake_done():
     brief_path = session.export_brief()  # -> 写出 meta.brief_filename
 ```
 
-> 设计要点：**完全不依赖任何 LLM / openai**。intake 只负责「参数收集」，产出的 Markdown 简报文件交给 skill 主体读取并据此生成主持脚本，从而把「参数收集」与「内容生成」彻底解耦，也便于人工核对收集到的参数。
+> 设计要点：**完全不依赖任何 LLM / openai**。intake 只负责「参数收集」，产出的 Markdown 简报文件交给
+> skill 主体读取并据此生成主持脚本，从而把「参数收集」与「内容生成」彻底解耦，也便于人工核对收集到的参数。
 
 `SkillSession` 公共方法一览：
 
@@ -322,15 +351,25 @@ python scripts/corner_skill.py selftest                # 自动推荐配对 + �
 python scripts/corner_audit.py                         # schema 引用 + 身份 + 文档 ↔ 配置 + 纯度审计
 ```
 
-`scripts/corner_audit.py` **只审计本包**，不与其他技能包交叉比对（每包自包含）。检查按 schema → 身份 → 文档 ↔ 配置 → 纯度依次执行，**四段全部跑完才收尾**（某段失败不截断后续段，一次报全）：
+`scripts/corner_audit.py` **只审计本包**，不与其他技能包交叉比对（每包自包含）。
+检查按 schema → 身份 → 文档 ↔ 配置 → 纯度依次执行，**四段全部跑完才收尾**（某段失败不截断后续段，一次报全）：
 
-1. **schema 引用**：`$schema` 指向包内真实存在且可解析（带 `title`）的 JSON Schema，且配置齐备该 schema 的 `required` 顶层键；
-2. **身份**：`assets/` 下恰好一个 `*-corner-config.json` 且名为 `es-corner-config.json`；`SKILL.md` frontmatter `name` == `SKILL_NAME` == `meta.skill_name`；
-3. **文档 ↔ 配置**：frontmatter `version` ↔ `meta.version`、`brief_filename`、`constraints`（人数 / 时长 / 选项上限）、`time_allocation`（分钟与占比逐行核对，且分钟合计须等于 `duration_minutes`、pct 合计 ≈ 1.0）、`style.output_path_template` / `pos_groups` / `phase_labels`、`vocab_targets` 区间、`exam.levels` 标签、§3 交互契约表中每题的 `ask` 标注；
+1. **schema 引用**：`$schema` 指向包内真实存在且可解析（带 `title`）的 JSON Schema，
+   且配置齐备该 schema 的 `required` 顶层键。
+2. **身份**：`assets/` 下恰好一个 `*-corner-config.json` 且名为 `es-corner-config.json`。
+   `SKILL.md` frontmatter `name` == `SKILL_NAME` == `meta.skill_name`。
+3. **文档 ↔ 配置**：逐项核对 SKILL.md 与配置是否对得上：
+   - `meta.version` 自查 X.Y.Z 形态（版本号唯一真源在配置，frontmatter 不写）
+   - `brief_filename`、`constraints`（人数 / 时长 / 选项上限）
+   - `time_allocation` 逐行核对分钟与占比，且分钟合计须等于 `duration_minutes`、pct 合计 ≈ 1.0
+   - `style.output_path_template` / `pos_groups` / `phase_labels`
+   - `vocab_targets` 区间、`exam.levels` 标签
+   - §3 交互契约表中每题的 `ask` 标注
 4. **内容纯度**：包内任何 `.md` / `.py` / `.json` 都不得出现别的语言配置文件名。
 
 任何一项不符即非零退出。输出只有两种行：`✗` 是报出的不一致（决定退出码），`○` 是「这一段没验」的告知（不影响退出码）。
-`○` 目前只有一种来源：`$schema` 写成 URL 时本包解析不了它，引用与必填键两层校验都被跳过 —— **跳过不等于校验过**，这正是它不叫 `✓` 的原因。
+`○` 目前只有一种来源：`$schema` 写成 URL 时本包解析不了它，引用与必填键两层校验都被跳过。
+**跳过不等于校验过** —— 这正是它不叫 `✓` 的原因。
 
 ## 本包实例取值
 

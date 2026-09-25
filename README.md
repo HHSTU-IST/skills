@@ -75,7 +75,7 @@ npx skills add <owner>/<repo> -y                 # 项目级（默认行为）
 
 ### project-py
 
-触发词：*Python、py、ruff、ty、lint、类型检查、包管理、micromamba、uv、matplotlib、subplots。*
+触发词：*Python、py、ruff、ty、lint、类型检查、包管理、micromamba、mamba、conda、uv、matplotlib、subplots、运行脚本、虚拟环境。*
 
 ```text
 给这些图加上误差棒，顺便把绘图代码收拾干净。
@@ -262,7 +262,7 @@ python <this skill dir>/scripts/verify.py <file-or-dir>...
 
 新增文件类型通常只需改 `scripts/file-types.json`，无需改代码；进程内检查写进 `scripts/checkers.py`。整个包只用 Python 标准库，因此任何机器上都能跑。
 
-`SKILL.md` 里还有一节很长的「门禁细节」，记录了那些花了真实调试时间的坑——为什么 `oxlint` 需要 `--deny-warnings`、为什么 `oxipng` 的退出码不可信、为什么 `.jsonc` 这个后缀有时是刻意为之而非拼错。
+`SKILL.md` 里还有一节很长的 `Gotchas`，记录了那些花了真实调试时间的坑——为什么 `oxlint` 需要 `--deny-warnings`、为什么 `oxipng` 的退出码不可信、为什么 `.jsonc` 这个后缀有时是刻意为之而非拼错。
 
 流程如下，回跳门禁的那一环画在它真正发生的位置：
 
@@ -283,7 +283,7 @@ flowchart TD
 
 ## 项目规范
 
-这三个 skill 为另一个独立仓库（lectures）编码内部约定。前两个是被动的：它们描述约定、动手前先问，但不自带工具。`project-tex` 是其中的例外——它自带检查脚本，因此也有机械执行的一半。
+这三个 skill 为另一个独立仓库（lectures）编码内部约定。前两个只描述约定：动手前先问，但从不检查你写下的文件。`project-tex` 是其中的例外——它自带检查脚本，因此也有机械执行的一半。
 
 ### project-py
 
@@ -592,11 +592,14 @@ flowchart TD
 每个 skill 都能离线自检：
 
 ```bash
-python scripts/sm_selftest.py            # Scoop 系 skill：完整自检
-python scripts/verify.py .               # skill-draft：为每个文件设门禁
+python scripts/sm_selftest.py              # Scoop 系 skill：完整自检
+python scripts/verify.py .                 # skill-draft：为每个文件设门禁
+python scripts/selfcheck.py                # project-py / project-typ：身份、文档指针、符号
+python scripts/check_style.py --selfcheck  # project-tex：脚本与规则表双向核对
+python scripts/corner_audit.py             # anchor-*：身份、schema、文档 ↔ 配置、纯度
 ```
 
-这些自检不是装饰。它们双向强制配方 ↔ 构建器覆盖、文档 ↔ 代码一致（规则表必须与代码逐字相符）、针对真实 bucket 的往返序列化、README 同步幂等，以及「skill 的 `name` 必须等于其目录名」这条规则。
+这些自检不是装饰。它们双向强制配方 ↔ 构建器覆盖、文档 ↔ 代码一致（`project-tex` 的规则表必须与代码逐字相符，`project-py` / `project-typ` 的清单与规则对账）、针对真实 bucket 的往返序列化、README 同步幂等，以及每个包里「`SKILL.md` 的 `name` 等于目录名、它引用的文件真实存在」这条规则。
 
 ### 动手编辑前值得知道的两条约定
 

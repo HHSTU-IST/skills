@@ -7,23 +7,31 @@ agent_created: true
 
 # 西班牙语角主持助手（Spanish Corner Host）
 
-**技能类型**：混合型 —— 硬约束管「这不做什么」（平等圆桌、仅西语、固定 90 分钟规格），工序管「按序 4 问再产出」的 intake 与生成工作流。
+**技能类型**：混合型 —— 硬约束管「这不做什么」（平等圆桌、仅西语），工序管「按序 4 问再产出」的 intake 与生成工作流。
 
 为每周西班牙语角生成一套**可直接朗读/使用**的主持材料。交互式：先问清楚本次要练什么，再产出。
 
-本文档**只描述流程、风格与方法论**，不含任何可选项数据——语法点、水平、规模、话题维度、时间分配、词汇量、DELE 等级等一律以 `assets/es-corner-config.json` 为准。增删选项只改 JSON，无需改动本文件。
+本文档**只描述流程、风格与方法论**，不含任何可选项数据 —— 语法点、水平、规模、话题维度、
+时间分配、词汇量、DELE 等级一律以 `assets/es-corner-config.json` 为准。
+增删选项只改 JSON，无需改动本文件。
 
 ## 定位与硬约束
 
-- **形式定位（最重要）**：**平等参与的圆桌讨论**。所有参与者地位相同，**不含任何辅导 / 教学环节、无分组讨论、不布置作业**。主持人以「参与者之一」的身份引导话题与节奏，不讲解语法、不做一对一纠正、不充当教师。
-- **语言范围**：**仅西班牙语**。本技能包只加载 `assets/es-corner-config.json`，不含法语数据与逻辑；法语角请用独立技能包 `anchor-french`。
+- **形式定位（最重要）**：**平等参与的圆桌讨论**，所有参与者地位相同，主持人以「参与者之一」的身份引导话题与节奏。
+  不含任何辅导 / 教学环节，无分组讨论，不布置作业；不讲解语法、不做一对一纠正、不充当教师。
+- **语言范围**：**仅西班牙语**。本技能包只加载 `assets/es-corner-config.json`，不含法语数据与逻辑。
+  法语角请用独立技能包 `anchor-french`。
 - **规模与时长**：**≤10 人 / 固定 90 分钟**（来自 `constraints.max_participants`、`constraints.duration_minutes`）。
 - **水平范围**：B1–C2（含「混合（B1–C2）」），不出现 A1 / A2。
 - **产出物**：单页 Markdown 主持脚本，路径模板见 `style.output_path_template`（`docs/es-{topic}.md`）。
 
 ## 技能包结构与运行
 
-本包是**自包含技能包**（skill-creator 标准结构）：脚本、参考文档、数据资产齐备，只服务西班牙语，可整体复制到 `~/.workbuddy/skills/` 使用。标准布局、各文件的职责边界、运行时管线（谁解析、谁收集、谁产出）与顶层字段的消费方，都在 `references/corner-architecture.md`（§0 / §1.6，本包实例取值见 §5）；本节只留跑得起来的那部分。
+本包是**自包含技能包**（skill-creator 标准结构）：脚本、参考文档、数据资产齐备，只服务西班牙语，可整体复制到
+`~/.workbuddy/skills/` 使用。
+
+标准布局、各文件的职责边界、运行时管线（谁解析、谁收集、谁产出）与顶层字段的消费方，都在
+`references/corner-architecture.md`（§0 / §1.6；本包实例取值见 §5）。本节只留跑得起来的那部分。
 
 ```bash
 # 在技能包根目录执行
@@ -49,16 +57,30 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 
 交互原则：
 
-- 选项一律**鼠标可勾选**；单题选项数超过 `constraints.ask_options_per_question`（6）时，按「每 ≤6 个一组」拆成多个子问题（同一语义键，标题标注 `（i/n）`）。
+- 选项一律**鼠标可勾选**。
+- 单题选项数超过 `constraints.ask_options_per_question`（6）时，按「每 ≤6 个一组」拆成多个子问题 ——
+  同一语义键，标题标注 `（i/n）`。
 - 优先用选项给出推荐，同时允许用户自定义（"Other"）。
 - **不要替用户脑补语法点**；Q1 未答则 Q2 不展开。
-- **话题三种来源（Q4 逐题询问）**：① 从 `topic_pool` 题库勾选；② 选「🎲 随机选一个」，由 `random_topics()` 从题库抽取；③ 直接输入自定义话题（`allow_custom`）。用户若在消息里已给话题，以其为准，不再追问。
+- **话题三种来源（Q4 逐题询问）**：
+  - ① 从 `topic_pool` 题库勾选；
+  - ② 选「🎲 随机选一个」，由 `random_topics()` 从题库抽取；
+  - ③ 直接输入自定义话题（`allow_custom`）。
+  用户若在消息里已给话题，以其为准，不再追问。
 
 ## 工作流
 
 ### 读取简报
 
-先读**当前工作目录**下的 `es-corner-brief.md`（文件名见 `meta.brief_filename`，由 `scripts/corner_skill.py` 的 `export_brief()` 落盘），从中取得水平、一 / 二级语法点、话题、规模、词汇量目标、阶段名、POS 分组、DELE 标注规则与 rubric。**简报已确定的参数不再询问**。
+先读**当前工作目录**下的 `es-corner-brief.md`（文件名见 `meta.brief_filename`，由 `scripts/corner_skill.py` 的
+`export_brief()` 落盘），从中取得：
+
+- 水平、一 / 二级语法点
+- 话题、规模、词汇量目标
+- 阶段名、POS 分组
+- DELE 标注规则与 rubric
+
+**简报已确定的参数不再询问**。
 
 ### 生成主持词（纯西文；30 题穿插其中）
 
@@ -69,44 +91,53 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 - **话题引入（Tema）**：简述话题背景（西文），过渡到第一部分。
 - **讨论（Discusión，含 30 题，分 3 部分）**：
   - 每部分以一个**主持引出句**开场（如 « Pasamos a la siguiente parte: … »）；
-  - 该部分 10 题**逐题由主持过渡语引出**（如 « Por turnos, responded: » / « Y tú, ¿qué opinas? »），问题本身仅西文 + DELE 标注；
+  - 该部分 10 题**逐题由主持过渡语引出**，如 « Por turnos, responded: » / « Y tú, ¿qué opinas? »；
+    问题本身仅西文 + DELE 标注；
   - 三部分按话题相似度聚类、内部递进（个人化 → 展开 → 辩论），难度随题号递增。
 - **结语（Cierre）**：复述要点（西文）→ 预告下次（**无作业**）。
 
 ### 30 题生成规则（DELE 标注 · 按话题聚类 · 递进）
 
-围绕话题与语法点，**先按话题相似度聚成 3 个部分**（按话题的子主题拆；如旅行 → 「过往经历 / 理想旅行 / 旅行与社会」）。**每个部分内部保持递进**：个人化、易开口 → 开放式展开 → 观点 / 辩论，难度随题号递增。
+围绕话题与语法点，**先按话题相似度聚成 3 个部分**，**每个部分内部保持递进**：
+个人化、易开口 → 开放式展开 → 观点 / 辩论，难度随题号递增。
 
-- 每题标注 DELE 等级，标签形如 `(DELE B1)` / `(DELE B2)` / `(DELE C1)` / `(DELE C2)`；仅使用 B1–C2 档，不出现 A1 / A2。映射规则与 rubric 取自配置的 `exam`（`levels` / `rules` / `rubric`），并已写入简报。
+用户给了话题时按其子主题拆（如旅行 → 「过往经历 / 理想旅行 / 旅行与社会」）。
+
+- 每题标注 DELE 等级，标签形如 `(DELE B1)` / `(DELE B2)` / `(DELE C1)` / `(DELE C2)`。
+  仅使用 B1–C2 档，不出现 A1 / A2；映射规则与 rubric 取自配置的 `exam`（`levels` / `rules` / `rubric`），并已写入简报。
 - **最高档默认用 `(DELE C1)`**；`(DELE C2)` 仅在用户明确要求 C1+ / C2 时出现（`exam.rules`）。
 - 「混合」水平时按 B1→C2 梯度高低搭配，每部分内避免连续同档。
 - **不再单列「热身 / 深入 / 辩论」区块**，递进体现在部分内部与主持词穿插中。
 - **语言**：问题本身**仅保留西文**（不附中文括注）；由主持人现场口译。
 
-示例结构（共 3 部分，每部分 10 题，嵌入主持词）：
-
-- Parte 1（话题 A，递进 DELE B1→DELE B2）
-- Parte 2（话题 B，递进 DELE B1→DELE C1）
-- Parte 3（话题 C，递进 DELE B1→DELE C2）
+部分划分、题号分段与通用引导句见「30 题生成框架」；生成时保证 3 部分 × 10 题嵌入主持词即可。
 
 ### 生成生词表（按词性 · 西文释义）
 
-分组取自 `style.pos_groups`：Sustantivos / Verbos / Adjetivos / Adverbios / Preposiciones·Conjunciones / Pronombres / Otros。
+分组取自 `style.pos_groups`：Sustantivos / Verbos / Adjetivos / Adverbios /
+Preposiciones·Conjunciones / Pronombres / Otros。
 
-每组：`palabra → definición en español → ejemplo en español`（不使用中文；词性分类名也用西文）。优先覆盖话题与语法所需高频词，总量按简报中的 `vocab_targets` 区间控制。
+每组：`palabra → definición en español → ejemplo en español`（不使用中文；词性分类名也用西文）。
+
+优先覆盖话题与语法所需高频词，总量按简报中的 `vocab_targets` 区间控制。
 
 ### 产出与呈现
 
-- 写入**单个 Markdown 文件**，路径按 `style.output_path_template`（`docs/es-{topic}.md`，`{topic}` 为西文话题名，如 旅行 → `docs/es-viaje.md`）；目录不存在则创建；若不在该仓库工作，写到当前工作区 `./docs/`。
+- 写入**单个 Markdown 文件**，路径按 `style.output_path_template`（`docs/es-{topic}.md`）。
+  `{topic}` 为西文话题名（如 旅行 → `docs/es-viaje.md`）；目录不存在则创建。
+  若不在该仓库工作，写到当前工作区 `./docs/`。
 - 固定生成「环节时间分配」表（数值取自 `time_allocation`，见附录 A.5）。
 - 写入后**尝试执行 `rumdl fmt <文件路径>`** 格式化；若 `rumdl` 不可用或报错，静默跳过（不阻断产出）。
 - 用 **present_files** 打开预览，并附一句简要说明。
 
 ## 风格约定
 
-- **纯西文（无中文・无英文）**：主持词正文、问题、生词释义、例句，以及所有标题、结构化标签（Apertura / Rompehielos / Tema / Discusión / Cierre）与词性分类名一律用西文书写。可保留 `(DELE B1)`、`(DELE C1)` 这类等级标注（属西文专有名词）。
+- **纯西文（无中文・无英文）**：主持词正文、问题、生词释义、例句，以及所有标题、结构化标签与词性分类名一律用西文书写。
+  - 结构化标签指环节名：Apertura / Rompehielos / Tema / Discusión / Cierre。
+  - 例外：`(DELE B1)`、`(DELE C1)` 这类等级标注属西文专有名词，可保留。
 - **不使用水平分割线 `---`**（`style.no_hr`）：区块之间用标题层级与空行分隔。
-- **用标题代替整行加粗**（`style.no_full_line_bold`）：元信息 / 小节标题使用 `##` / `###`，禁止用整行 `**加粗**` 充当标题（避免 rumdl MD036 告警）。
+- **用标题代替整行加粗**（`style.no_full_line_bold`）：元信息 / 小节标题使用 `##` / `###`。
+  禁止用整行 `**加粗**` 充当标题（避免 rumdl MD036 告警）。
 - 难度贴合所选水平；例句尽量贴近话题场景；问题明确标注 DELE 等级。
 
 ## 踩坑点
@@ -160,22 +191,32 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 
 ## 附录 A · 生成框架与方法（无法数据化的部分）
 
-> 以下为方法论：话题生成、30 题框架、句型复杂度、规模备注；题型骨架表已下沉到 `references/corner-architecture.md`（§6）。
+> 以下为方法论：话题生成、30 题框架、句型复杂度、规模备注。
+> 题型骨架表已下沉到 `references/corner-architecture.md`（§6）。
 > 所有**可选项数据**以 `assets/es-corner-config.json` 为准，由 `scripts/corner_config.py` 加载；增删选项只改 JSON。
 
 ### 话题生成方法（适用于任何语法点）
 
 不限定具体话题。选定语法点后，按「三个通用生活维度」生成 2–4 个候选话题，保证任意语法点都能落地。
 
-做法：取该语法点的「典型使用场景」，套入任一维度即可。例如条件式 → 「理想旅行 / 假设情景 / 礼貌请求」，被动态 → 「新闻事件 / 环保 / 社会议题」。用户可自定义，无需受限于示例。
+做法：取该语法点的「典型使用场景」，套入任一维度即可。例如：
+
+- 条件式 → 「理想旅行 / 假设情景 / 礼貌请求」
+- 被动态 → 「新闻事件 / 环保 / 社会议题」
+
+用户可自定义，无需受限于示例。
 
 若用户说「没想好 / 随便 / 你来定」，直接用上述维度为该语法点生成 2 个话题，不再追问。
 
-> 三个通用生活维度（个人经历 / 日常、愿望 / 假设、社会 / 比较 / 观点）及其示例已外置为 `topic_dimensions`（label + desc），供话题生成时参考；Q4 的备选题库则来自 `topic_pool`。
+> 三个通用生活维度（个人经历 / 日常、愿望 / 假设、社会 / 比较 / 观点）及其示例已外置为
+> `topic_dimensions`（label + desc），供话题生成时参考；Q4 的备选题库则来自 `topic_pool`。
 
 ### 30 题生成框架（3 部分递进，适用于任何话题）
 
-先按「话题相似度」把 30 题聚成 3 个部分（每部分 10 题）。若用户给了 1 个话题，可用「个人 → 展开 → 社会 / 观点」三维度拆分；若给了 2 个话题，可各占部分或合并。
+先按「话题相似度」把 30 题聚成 3 个部分（每部分 10 题）。
+
+- 用户给了 1 个话题：用「个人 → 展开 → 社会 / 观点」三维度拆分。
+- 用户给了 2 个话题：各占部分或合并。
 
 每部分内部保持递进（本规格水平 B1–C2，不出现 A1 / A2）：
 
@@ -187,7 +228,8 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 
 - 开场引出：*Pasamos a la siguiente parte: {S}.*
 - 逐题过渡：*Por turnos, responded:* / *Y tú, ¿qué opinas?*
-- 递进示例：*Habla de {S} según tu experiencia.* → *¿Qué te marcó de {S}?* → *¿Deberíamos cambiar nuestra relación con {S}?*
+- 递进示例：*Habla de {S} según tu experiencia.* → *¿Qué te marcó de {S}?*
+  → *¿Deberíamos cambiar nuestra relación con {S}?*
 
 ### 按语法点的题型骨架（通用，可替换话题）
 
@@ -216,4 +258,5 @@ python scripts/corner_audit.py           # schema / 身份 / 文档 ↔ 配置 /
 | 讨论（Discusión，含 3 部分 30 题） | 55.5% | 50   |
 | 结语（Cierre）                     | 11.1% | 10   |
 
-> 规格固定为 **≤10 人 / 90 分钟** 的平等圆桌，**不含辅导 / 教学环节、无分组讨论**。小班（2–4 人）可加重讨论、压缩开场；大班（9–10 人）可改为全员轮流发言。
+> 规格固定为 **≤10 人 / 90 分钟** 的平等圆桌，**不含辅导 / 教学环节、无分组讨论**。
+> 小班（2–4 人）可加重讨论、压缩开场；大班（9–10 人）可改为全员轮流发言。
