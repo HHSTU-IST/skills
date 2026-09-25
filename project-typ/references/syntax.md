@@ -61,6 +61,35 @@ decks 里最常出问题的是**内容撑破 16:9 单页**。惯用手法：
   就写在该栏的 `#[ … ]` 里，别改块首那一行。
 - `columns()` 不带参数即两栏；栏宽按 `columns(n, gutter: g)` 现算，别拿两栏的宽度去量三栏块。
 
+容量实测（16:9 deck，正文区约 19–20em，半栏宽约 300pt）：
+
+- `#set text(size: 16pt)` 的半栏，装得下 **8–10 行正文 + 一条提示框**；
+  想再塞一张 `height: 40%` 的图，正文要收到 5–6 行，且图只能独占一栏。
+- `#set text(size: 11–12pt)` 包住的代码块，半栏能放 **20–26 行**；10pt 可到 30 行上下。
+  配置类 JSON 一律按这个档位包一层 `#[ #set text(size: 11pt) … ]`，否则二十几行必然拆页。
+- `tableq(data, 3)` 放进**半栏**时，若有一列是 `publisher.extension-id` 这种长 ID：
+  等宽字宽约 0.6em，半栏 300pt 换算下来**字号必须压到 12–13pt** 才不折行；
+  长 ID 列更建议整页全宽放。
+
+### 用墨水密度定位残页
+
+页数比预期多，说明有页被自动拆开；而拆出来的那页常常只有两三行，翻缩略图容易看漏。
+按「墨水密度」（正文区暗像素占比）扫一遍，一眼就能找出来：
+
+```python
+from PIL import Image
+import glob, numpy as np
+for f in sorted(glob.glob('C:/Users/me/AppData/Local/Temp/render/*.png')):
+    a = np.asarray(Image.open(f).convert('L')); h, w = a.shape
+    ink = (a[70:h-40, :] < 170).mean()          # 掐掉页眉与页脚
+    if ink < 0.013:
+        print(f[-6:-4], round(ink, 4))
+```
+
+判读：正常内容页 0.03–0.07，章节扉页与结束页约 0.008，**拆出来的残页落在 0.002–0.012**
+——所以「低墨水页的个数」应当正好等于「章节扉页数 + 结束页数」，多出来的就是残页。
+（含大图的页会到 0.2 以上，不干扰判断。）
+
 ### 批量摘壳（旧写法 → 裸 `columns()`）
 
 存量课件从 `#block(height: …, columns()[…])` 摘掉外层，工具在 `code/`：
@@ -248,6 +277,18 @@ typst compile --font-path "C:/Windows/Fonts" v01-环境搭建.typ
 - 不要用 shell `diff` 比对含中文的混合编码文件：遇到 GBK 字节会抛
   `UnicodeDecodeError` 并**静默返回 "(no diff)"**（假阴性）。
   → 用 Python `difflib` + 编码回退（`utf-8-sig` → `utf-8` → `gbk` → `latin-1`）。
+
+### Git Bash 的 `/tmp` 与 Windows Python 对不上
+
+现象：`typst compile … "/tmp/r/{0p}.png"` 编译成功，shell 里 `ls /tmp/r` 也能列出一堆 PNG，
+可 Python 的 `glob.glob('/tmp/r/*.png')` 返回**空列表**。
+
+原因：Git Bash 把 `/tmp` 映射到 `C:/Users/<user>/AppData/Local/Temp`（`cd /tmp/r && pwd -W` 可验证），
+而 Windows 原生 Python 把 `/tmp/r` 当成「当前盘符根目录下的 `tmp\r`」，自然找不到。
+typst 是原生程序，但它收的是 Git Bash 转换后的路径，所以能写进去。
+
+→ 渲染目录直接写 Windows 路径（`C:/Users/<user>/AppData/Local/Temp/r`），
+或先 `pwd -W` 拿到真实路径再交给 Python。
 
 ### 导出的 PNG 序列
 

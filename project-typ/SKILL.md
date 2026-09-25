@@ -321,6 +321,8 @@ p.write_text(p.read_text(encoding="utf-8"), encoding="utf-8", newline="\r\n")
   （`#block(height: 17em)` 装不下 21 行代码，尾部 4 行被裁在页外）。
   对策：跟旧版逐页比像素，确认多出来的那页是「内容回来了」的续页。camp 的 `技能-编程环境.typ`
   有两页正是如此——内容回来了，代价是多一张续页。
+  **判据可以量化**：扫一遍渲染图的墨水密度，低墨水页的个数应当正好等于「章节扉页数 + 结束页数」，
+  多出来的就是残页。扫法见 `references/syntax.md` 的「用墨水密度定位残页」。
 - **`typstyle` 已经把 CRLF 转成了 LF，`--check` 却还在报同一批文件。**
   现象：还原 CRLF 后，`typstyle --check .` 一直报这 11 个文件待格式化。
   原因：报的是换行差异，不是内容未格式化；typstyle 无条件把 CRLF 转成 LF。
