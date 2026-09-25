@@ -325,8 +325,9 @@ python scripts/sm_selftest.py --verbose  # print every detail
 The self-check has 7 groups, numbered in run order: recipe catalog shape and
 architecture policy -> virtual rendering of all 18 recipes from their own
 declared parameters -> skill package consistency (`lint-rules.md` matches
-`RULES` word for word, `recipes.md` maps one-to-one onto `recipes.jsonc`, and
-`SKILL.md`'s `name` equals the directory name) -> path resolution policy (no
+`RULES` word for word, `recipes.md` maps one-to-one onto `recipes.jsonc`,
+`SKILL.md`'s `name` equals the directory name, and every `references/*.md` is
+indexed by `SKILL.md`) -> path resolution policy (no
 expanded `$Scoop` baked in, and `$Scoop/buckets/main-plus` really is the
 fallback) -> repo serialization round-trip -> README table round-trip,
 row-insert idempotence and the no-op re-sync -> the lint baseline over the real

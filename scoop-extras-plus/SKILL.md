@@ -372,8 +372,9 @@ and no hard-coded Scoop root appears anywhere in the package) -> virtual
 rendering of all 16 recipes -> repo serialization round-trip -> README table
 round-trip and row-insert idempotence -> the lint baseline over the real bucket
 -> docs <-> code consistency (`lint-rules.md` matches `RULES` word for word,
-`recipes.md` maps one-to-one onto `recipes.jsonc`, and `SKILL.md`'s `name`
-equals the directory name).
+`recipes.md` maps one-to-one onto `recipes.jsonc`, `SKILL.md`'s `name`
+equals the directory name, and every `references/*.md` is indexed by
+`SKILL.md`).
 
 **Adding a recipe** (4 steps, and the self-check catches omissions): add an entry
 to the `recipes` array in `recipes.jsonc` (`id` / `label` / `when` /

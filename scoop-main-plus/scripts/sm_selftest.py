@@ -428,6 +428,20 @@ def check_docs(check: Checker) -> None:
     # coverage.md documents where the recipes come from and what is still uncovered
     check.expect((refs / "coverage.md").is_file(), "references/coverage.md exists")
 
+    # SKILL.md is the only index a reader gets, so every reference file must be
+    # listed there by its backticked path, and no pointer may dangle. A file that
+    # is never listed is dead weight: nothing loads it.
+    skill_text = (L.skill_root() / "SKILL.md").read_text(encoding="utf-8")
+    pointed = set(re.findall(r"`references/([A-Za-z0-9._-]+\.md)`", skill_text))
+    on_disk = {path.name for path in refs.glob("*.md")}
+    check.expect(
+        pointed == on_disk,
+        "SKILL.md indexes every reference, and every pointer resolves",
+        f"dangling {sorted(pointed - on_disk)}; unlisted {sorted(on_disk - pointed)}"
+        if pointed != on_disk
+        else f"{len(on_disk)} files",
+    )
+
     # SKILL.md frontmatter matches the directory name
     skill_file = L.skill_root() / "SKILL.md"
     if not skill_file.is_file():
