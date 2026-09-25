@@ -252,12 +252,17 @@ as soon as a new one shows up — this is where the density is.
   says which file won. To list everything the project file sets in one
   shot, skip the per-key loop: `rumdl config --no-defaults` prints only the
   non-default keys, tagged `[from .rumdl.toml]`. Third, **an unrecognized
-  key is ignored, and the warning it prints never reaches the gate**:
-  `rumdl` writes `[config warning] Unknown global option in <file>: <key>`
-  to stderr and still exits 0, and the gate drops the output of any step
-  that exits 0. So a typo equals not writing the key at all — after editing
-  config you must `get` every key to confirm. Add `--deny-config-warnings`
-  when you want that warning to become exit 2 and actually be seen.
+  key is ignored**: `rumdl` writes `[config warning] Unknown global option
+  in <file>: <key>` to stderr and still exits 0, so a typo is
+  indistinguishable from not writing the key at all. Every `rumdl` step in
+  the rules table therefore carries `--deny-config-warnings`, which turns
+  that warning into exit 2. Two limits on it. It bites only in the verify
+  stage: the gate ignores repair-step exit codes, and `--fix` / plain `fmt`
+  still write the file before exiting 2. And it covers unknown option
+  names, unknown rule names (`disable = ["MD999"]`, `[MD13]`) and unknown
+  top-level keys — but **not** a value of the wrong type:
+  `line-length = "wide"` is accepted without a single warning. After
+  editing config, `get` every key.
 - `rumdl fmt`'s exit code does not indicate whether anything changed; only
   `rumdl fmt --check` returns 1 when a change is needed. Calling a file
   clean requires both `check` and `fmt --check`.
@@ -322,8 +327,9 @@ as soon as a new one shows up — this is where the density is.
 
 - Delivering after editing a file without rerunning the gate, or turning a
   rule off to go green when the gate reports errors.
-- Creating `ruff.toml` / `ty.toml` / `.rumdl.toml` to downgrade rules,
-  which is the same as disabling the gate.
+- Creating `ruff.toml` / `ty.toml` to downgrade the code checks, or relaxing a
+  layout rule in `.rumdl.toml` without recording which rule and why. Layout
+  rules may be relaxed; content-quality rules may not.
 - Writing `description` as an introduction with no branches, so the skill
   never triggers.
 - Cramming all long specs into SKILL.md, or conversely stuffing all the

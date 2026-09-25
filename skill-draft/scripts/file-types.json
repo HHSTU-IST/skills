@@ -52,12 +52,12 @@
       "suffixes": [".md"],
       "builtins": [{ "check": "skill-frontmatter", "only": ["SKILL.md"] }],
       "fix": [
-        ["rumdl", "check", "--no-cache", "--fix"],
-        ["rumdl", "fmt", "--no-cache"]
+        ["rumdl", "check", "--no-cache", "--deny-config-warnings", "--fix"],
+        ["rumdl", "fmt", "--no-cache", "--deny-config-warnings"]
       ],
       "verify": [
-        ["rumdl", "check", "--no-cache"],
-        ["rumdl", "fmt", "--no-cache", "--check"]
+        ["rumdl", "check", "--no-cache", "--deny-config-warnings"],
+        ["rumdl", "fmt", "--no-cache", "--deny-config-warnings", "--check"]
       ]
     },
     {

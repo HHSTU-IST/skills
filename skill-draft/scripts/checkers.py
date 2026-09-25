@@ -68,6 +68,11 @@ def json_parse(path: Path) -> list[str]:
 def skill_frontmatter(path: Path) -> list[str]:
     """Check the frontmatter has name == directory name, a description, and no extra keys.
 
+    `ALLOWED_FRONTMATTER_KEYS` is the single source of truth for the exception list, and
+    the exception only ever runs one way: a key the host writes in for itself (a platform
+    state flag such as `agent_created`) is not an extra key the author added. Anything the
+    author wants to say belongs in the body, not in a frontmatter field.
+
     Length is deliberately not gated: how long a description should be follows from how
     many trigger branches it needs, so a hard limit would only force useful branches out.
     """
